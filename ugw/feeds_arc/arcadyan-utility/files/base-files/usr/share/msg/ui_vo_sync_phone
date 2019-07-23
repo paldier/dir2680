@@ -1,0 +1,1 @@
+arca.dbus.voip:CMD_DECT_SETUP SIP_CORE_Phone_CFGSync $(1)

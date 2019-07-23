@@ -1,0 +1,8 @@
+#arca.dbus.vsftpd:CMD_RESTART
+#arca.dbus.twonkyserver:CMD_RESTART
+#arca.dbus.samba:CMD_RESTART
+arca.dbus.usbapp:CMD_FTP_STOP
+arca.dbus.usbapp:CMD_FTP_START
+arca.dbus.usbapp:CMD_DLNA_RESTART
+arca.dbus.usbapp:CMD_SAMBA_STOP
+arca.dbus.usbapp:CMD_SAMBA_START

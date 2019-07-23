@@ -1,0 +1,2 @@
+#action for Diagnostics.asp ping
+arca.dbus.misc:diag CMD_TRACEROUTE_STOP

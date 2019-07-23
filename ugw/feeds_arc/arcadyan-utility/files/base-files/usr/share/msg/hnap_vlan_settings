@@ -1,0 +1,4 @@
+#vlan settings
+arca.dbus.misc:	vlan CMD_BOOT
+		bridge CMD_CHANGE
+

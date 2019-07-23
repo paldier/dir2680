@@ -1,0 +1,28 @@
+echo "[init_action]" > /dev/console
+
+export MALLOC_ARENA_MAX=1
+
+sh /sbin/wlan_wave_init.sh
+
+#QoS init
+sh /usr/sbin/qos/qos_init.sh &
+
+#USB init
+#sh /usr/sbin/usb.sh boot
+mapi_usb_cli initialize &
+
+#NFC init
+nfc-agent boot
+
+# arc_site_blocking daemon by Garnet 2016/09/07
+if [ -x "/usr/bin/arc_site_blocking" ] ; then
+   echo "restart_lan_svc /usr/bin/arc_site_blocking..." > /dev/console
+   /usr/bin/arc_site_blocking &
+fi
+
+#TR69 init
+tr69 &
+
+
+
+exit 0

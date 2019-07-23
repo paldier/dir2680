@@ -1,0 +1,7 @@
+arca.dbus.wlan:CMD_RESTART
+arca.dbus.firewall:CMD_RESTART guest_mod
+arca.dbus.misc:firewall6 CMD_RESTART
+arca.dbus.dnsmasq:CMD_RESTART
+arca.dbus.dhcpd:CMD_RESTART
+arca.dbus.netbios:CMD_RESTART
+

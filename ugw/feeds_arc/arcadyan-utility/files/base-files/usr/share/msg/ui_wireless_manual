@@ -1,0 +1,7 @@
+arca.dbus.ECOmode: CMD_STOP
+arca.dbus.wlan:CMD_WL_BASIC
+arca.dbus.wlan:CMD_RESTART
+arca.dbus.nlinkd:CMD_RESTART
+arca.dbus.httpd:CMD_RESTART
+arca.dbus.netbios:CMD_RESTART
+arca.dbus.ECOmode:CMD_RELOAD_CONFIG

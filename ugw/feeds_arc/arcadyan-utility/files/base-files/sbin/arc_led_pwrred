@@ -1,0 +1,7 @@
+#!/bin/sh
+
+arc_led power off
+arc_led power_update on
+sleep $1
+arc_led power_update off
+arc_led power on

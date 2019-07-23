@@ -1,0 +1,2 @@
+arca.dbus.dhcp6c:CMD_STOP $(1)
+arca.dbus.misc:if6 CMD_STOP $(1)

@@ -1,0 +1,41 @@
+#!/bin/sh
+
+#The default min_free_kbytes is calculated at boot time based on 
+#the number of pages of physical RAM available on the system. 
+set_min_free_kbytes()
+{
+	echo 1024 > /proc/sys/vm/min_free_kbytes
+}
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		# Power Led
+		arc_led led_orange on
+
+		# memory control
+		set_min_free_kbytes
+		### route entry table
+		echo 4096 > /proc/sys/net/ipv4/route/max_size
+
+		echo 250 >  /proc/sys/vm/lowmem_reserve_ratio
+		echo 2 > /proc/sys/vm/dirty_background_ratio
+		echo 250 > /proc/sys/vm/dirty_writeback_centisecs
+		echo 10 > /proc/sys/vm/dirty_ratio
+		echo 16384 > /proc/sys/vm/max_map_count
+		echo 2 > /proc/sys/vm/page-cluster
+		echo 70 > /proc/sys/vm/swappiness
+
+		;;
+
+	"stop" | "CMD_STOP")
+		# Power Led
+		arc_led led_blue off
+		arc_led led_orange on
+		;;
+
+	*)
+		echo $0 'boot          - system control'
+		echo $0 'start         - system control'
+		echo $0 'stop          - do nothing'
+		;;
+esac

@@ -1,0 +1,68 @@
+#arca.dbus.misc:rcS CMD_BOOT
+arca.dbus.misc:sysctrl CMD_BOOT
+			 hostinfo CMD_BOOT
+			 nvram CMD_BOOT
+			 glbcfg CMD_BOOT
+			 modules CMD_BOOT
+#			 ltqcpe CMD_BOOT
+			 loopback CMD_BOOT
+#			 wantype CMD_BOOT
+			 system_time
+			 gen_cert
+arca.dbus.mcu:CMD_BOOT
+arca.dbus.ugw:CMD_BOOT
+arca.dbus.misc:elan CMD_BOOT
+			 vlan CMD_BOOT
+			 bridge CMD_BOOT
+			 lan CMD_BOOT
+			 waniface CMD_BOOT
+			 net_param CMD_BOOT
+			 sip_alg CMD_BOOT
+			 rtsp_alg CMD_BOOT
+			 ftp_alg CMD_BOOT
+arca.dbus.misc:pc_list CMD_BOOT
+#Simon@2014/12/25, Prepare cupsd.conf based on lan ip settings before udev
+arca.dbus.misc:cfg_monitor
+arca.dbus.misc:cupsd_conf
+arca.dbus.udevd:CMD_BOOT
+# IoT initiallization
+arca.dbus.misc:modules usb_xhci
+arca.dbus.misc:modules uart1
+arca.dbus.misc:modules watchdog
+arca.dbus.arciot:CMD_BOOT
+#arca.dbus.reachsdk:CMD_BOOT
+arca.dbus.audio:CMD_BOOT
+arca.dbus.misc:modules usb_storage
+arca.dbus.misc:mount CMD_BOOT
+arca.dbus.misc:web_auth CMD_BOOT
+arca.dbus.misc:if6 CMD_BOOT
+arca.dbus.misc:pthrouth CMD_RESTART
+arca.dbus.heartbeat:CMD_RESTART $(1)
+arca.dbus.apache:CMD_BOOT
+arca.dbus.dnsmasq:CMD_BOOT
+arca.dbus.llmnrd:CMD_BOOT
+arca.dbus.dhcpd:CMD_BOOT
+arca.dbus.dhcprelay:CMD_BOOT
+arca.dbus.wlan:CMD_BOOT
+arca.dbus.autowandetect:CMD_BOOT
+arca.dbus.crond:CMD_BOOT
+arca.dbus.httpd:CMD_BOOT
+arca.dbus.mdns:CMD_BOOT
+arca.dbus.upnp:CMD_BOOT
+arca.dbus.misc:route_table CMD_START
+arca.dbus.qos:CMD_RESTART
+arca.dbus.zebra:CMD_BOOT
+arca.dbus.log:CMD_BOOT
+arca.dbus.mcu:CMD_UPGRADE
+arca.dbus.telnetd:CMD_BOOT
+arca.dbus.misc:deviceready 1
+arca.dbus.misc:printk
+arca.dbus.usbapp:CMD_ACCOUNT_RESET
+arca.dbus.usbapp:CMD_ACCOUNT_SET
+arca.dbus.usbapp:CMD_FTP_START
+arca.dbus.usbapp:CMD_SAMBA_START
+arca.dbus.usbapp:CMD_DLNA_START
+arca.dbus.misc:nspingd
+arca.dbus.misc:mcast CMD_BOOT
+arca.dbus.misc:tss CMD_START
+

@@ -1,0 +1,53 @@
+#!/bin/sh
+
+gphy_check()
+{
+	[ "$1" == "WAN" ] && {
+		sDev="WAN"
+		argDevName="dev=1"
+		nAddrDev="1"
+	} || {
+		sDev="LAN"
+		argDevName=
+		nAddrDev="5"
+	}
+
+	# gphy device version id
+	GPHY_IDENT=41993
+	GPHY_RES=`switch_cli $argDevName GSW_MDIO_DATA_READ nAddressDev=$nAddrDev nAddressReg=3 | grep nData | awk '{print $2}'`
+	echo "***************************************************"
+	echo "* $sDev GPHY identification $GPHY_RES"
+
+	if [ $GPHY_RES -ne $GPHY_IDENT ]; then
+
+		echo "* ==> GPHY identify incorrect, reboot"
+		reboot
+
+	else
+
+		LINK_ED=`switch_cli $argDevName GSW_MDIO_DATA_READ nAddressDev=$nAddrDev nAddressReg=0x1 | grep nData | awk '{print $2}'`
+		echo "* ==> GPHY Link Status $LINK_ED"
+
+		if [ $LINK_ED -ne 31085 ]; then 
+			echo "* ==> GPHY is not Linked, re-start ANG"
+
+			# re-negotiation
+			# if self-clear was successful, value change from 0x1240 to 0x1040.
+			GPHY_NEGO_PASS=4160 #1040
+			GPHY_RWSC=0x1240
+			switch_cli $argDevName GSW_MDIO_DATA_WRITE nAddressDev=$nAddrDev nAddressReg=0x0 nData=$GPHY_RWSC
+			sleep 1
+			GPHY_RES=`switch_cli $argDevName GSW_MDIO_DATA_READ nAddressDev=$nAddrDev nAddressReg=0x0 | grep nData | awk '{print $2}'`
+			echo "* GPHY negotiation $GPHY_RES"
+			if [ $GPHY_RES -ne $GPHY_NEGO_PASS ]; then
+				echo "* ==> GPHY RWSC bit does not self-clear, reboot"
+				reboot
+			fi
+		fi
+	fi
+	echo "***************************************************"
+	echo
+}
+
+gphy_check WAN
+gphy_check LAN

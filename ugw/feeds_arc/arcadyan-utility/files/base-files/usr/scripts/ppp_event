@@ -1,0 +1,6 @@
+#!/bin/sh
+
+mng_cli set ARC_WAN_0_PPP_Auth="$1" action ""
+mng_cli set ARC_WAN_0_PPP_Status="Disconnected" action ""
+
+

@@ -1,0 +1,7 @@
+#action for Management.asp saving
+arca.dbus.firewall:CMD_RESTART $(1)
+arca.dbus.upnp:CMD_RESTART
+arca.dbus.misc:sleep 1
+               sip_alg CMD_RESTART
+arca.dbus.httpd:CMD_RESTART
+#arca.dbus.igmpproxy:CMD_RESTART

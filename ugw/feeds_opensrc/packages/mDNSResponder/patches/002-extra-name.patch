@@ -1,0 +1,432 @@
+diff -uNrd mDNSResponder-625.41.2_original/mDNSCore/mDNS.c mDNSResponder-625.41.2/mDNSCore/mDNS.c
+--- mDNSResponder-625.41.2_original/mDNSCore/mDNS.c	2018-01-17 14:54:14.433677387 +0800
++++ mDNSResponder-625.41.2/mDNSCore/mDNS.c	2018-01-17 14:55:05.011675132 +0800
+@@ -29,6 +29,10 @@
+ #include "dnssec.h"
+ #include "anonymous.h"
+ 
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++#include <stdlib.h>
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++
+ // Disable certain benign warnings with Microsoft compilers
+ #if (defined(_MSC_VER))
+ // Disable "conditional expression is constant" warning for debug macros.
+@@ -12517,6 +12521,74 @@
+     return(intf);
+ }
+ 
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++int gExtraNamesQty;
++const char *gExtraNames[EXTRA_NAME_MAX_QTY]; 
++
++mDNSlocal void build_extra_names(mDNS *const m)
++{
++	int index;
++
++	for(index = 0 ; index < gExtraNamesQty ; ++index)
++	{
++		m->extra_names[index].c[0] = 0;
++		AppendLiteralLabelString(&m->extra_names[index], gExtraNames[index]);
++		AppendLiteralLabelString(&m->extra_names[index], "local");
++		m->extra_names_qty++;
++	}
++}
++
++mDNSlocal void add_extra_names(mDNS *const m, NetworkInterfaceInfo *set)
++{
++	int index;
++	NetworkInterfaceInfo *primary = FindFirstAdvertisedInterface(m);
++
++	for(index = 0 ; index < m->extra_names_qty ; ++index)
++	{
++		set->EXTRA_RR_A[index] = mDNSPlatformMemAllocate(sizeof(AuthRecord));
++		if(set->EXTRA_RR_A[index] == NULL)
++			break;
++
++		mDNS_SetupResourceRecord(set->EXTRA_RR_A[index], mDNSNULL, set->InterfaceID, 
++		                         kDNSType_A, kHostNameTTL, kDNSRecordTypeUnique, AuthRecordAny, 
++		                         mDNS_HostNameCallback, set);
++
++#if ANSWER_REMOTE_HOSTNAME_QUERIES
++		set->EXTRA_RR_A[index].AllowRemoteQuery = mDNStrue;
++#endif
++
++		AssignDomainName(&set->EXTRA_RR_A[index]->namestorage, &m->extra_names[index]);
++
++		if (set->ip.type == mDNSAddrType_IPv4)
++		{
++			set->EXTRA_RR_A[index]->resrec.rrtype = kDNSType_A;
++			set->EXTRA_RR_A[index]->resrec.rdata->u.ipv4 = set->ip.ip.v4;
++		}
++		else if (set->ip.type == mDNSAddrType_IPv6)
++		{
++			set->EXTRA_RR_A[index]->resrec.rrtype = kDNSType_AAAA;
++			set->EXTRA_RR_A[index]->resrec.rdata->u.ipv6 = set->ip.ip.v6;
++		}
++
++		set->EXTRA_RR_A[index]->RRSet = &primary->RR_A; 
++
++		mDNS_Register_internal(m, set->EXTRA_RR_A[index]);
++	}
++}
++
++mDNSlocal void remove_extra_names(mDNS *const m, NetworkInterfaceInfo *set)
++{
++	int index;
++
++	for(index = 0 ; index < m->extra_names_qty ; ++index)
++		if(set->EXTRA_RR_A[index])
++		{
++			mDNS_Deregister_internal(m, set->EXTRA_RR_A[index], mDNS_Dereg_normal);
++			mDNSPlatformMemFree(set->EXTRA_RR_A[index]);
++		}
++}
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++
+ mDNSlocal void AdvertiseInterface(mDNS *const m, NetworkInterfaceInfo *set)
+ {
+     char buffer[MAX_REVERSE_MAPPING_NAME];
+@@ -12605,6 +12677,10 @@
+         debugf("Not creating HINFO record: platform support layer provided no information");
+         set->RR_HINFO.resrec.RecordType = kDNSRecordTypeUnregistered;
+     }
++
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	add_extra_names(m , set);
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+ }
+ 
+ mDNSlocal void DeadvertiseInterface(mDNS *const m, NetworkInterfaceInfo *set)
+@@ -12624,6 +12700,10 @@
+     if (set->RR_PTR  .resrec.RecordType) mDNS_Deregister_internal(m, &set->RR_PTR,   mDNS_Dereg_normal);
+     if (set->RR_HINFO.resrec.RecordType) mDNS_Deregister_internal(m, &set->RR_HINFO, mDNS_Dereg_normal);
+ 
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	remove_extra_names(m , set);
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++
+ #if APPLE_OSX_mDNSResponder
+     D2D_stop_advertising_interface(set);
+ #endif // APPLE_OSX_mDNSResponder
+@@ -12685,6 +12765,13 @@
+ mDNSlocal void mDNS_HostNameCallback(mDNS *const m, AuthRecord *const rr, mStatus result)
+ {
+     (void)rr;   // Unused parameter
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	//==add for mDNS shareport name conflict==
++	int index,i,j;
++	char buffer[64]={0};
++	NetworkInterfaceInfo *intf_new;
++	AuthRecord *rr_new;
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+ 
+     #if MDNS_DEBUGMSGS
+     {
+@@ -12701,6 +12788,71 @@
+         if (m->MainCallback)
+             m->MainCallback(m, mStatus_NoError);
+     }
++
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	//==deal with extra name conflict==
++	else if (result == mStatus_NameConflict && !SameDomainLabel(m->hostlabel.c,rr->resrec.name->c))
++	{
++		//compare all extra_names and deal with name conflict issue(like shareport) here
++		for(index = 0 ; index < m->extra_names_qty ; ++index)
++		{
++			LogMsg("Extraname%d: %s %s", index, gExtraNames[index],m->extra_names[index].c);
++			//if(SameDomainLabel(m->hostlabel.c,rr->resrec.name->c))
++				//continue;
++			
++			if(SameDomainLabel(m->extra_names[index].c,rr->resrec.name->c))
++			{
++				//this section is for multi-conflict,
++				//if the the extra_names have three more conflict,
++				//extra_names will be auto add suffix
++				//buffer = strdup(m->extra_names[index].c);
++					
++				memset(buffer,0,sizeof(buffer));
++				
++				i=0;j=0;
++				while(i<strlen(m->extra_names[index].c)-5 && i<64)//remove local
++				{
++					if(m->extra_names[index].c[i]>20)//remove empty and non-ascii
++					{
++						buffer[j] = m->extra_names[index].c[i];
++						j++;
++					}
++					i++;
++				}
++				memset(m->extra_names[index].c,0,sizeof(domainname));
++				
++				//==re-add the extraname==
++				AppendLiteralLabelString(&m->extra_names[index],buffer);
++				LogMsg("AfterExtraname-a%d: %s", index, &m->extra_names[index].c);
++				//==increase the padding number of extraname==
++				IncrementLabelSuffix(&m->extra_names[index], mDNSfalse);
++				LogMsg("AfterExtraname-b%d: %s", index, &m->extra_names[index].c);
++				//==add .local==
++				AppendLiteralLabelString(&m->extra_names[index], "local");
++				LogMsg("AfterExtraname-c%d: %s", index, m->extra_names[index].c);
++				
++				mDNS_Lock(m);
++				//belows are the mDNS_SetFQDN(m);
++				// 1. Stop advertising our address records on all interfaces
++				for (intf_new = m->HostInterfaces; intf_new; intf_new = intf_new->next)
++					if (intf_new->Advertise) DeadvertiseInterface(m, intf_new);
++			
++				// 2. Start advertising our address records using the new name
++				for (intf_new = m->HostInterfaces; intf_new; intf_new = intf_new->next)
++					if (intf_new->Advertise) AdvertiseInterface(m, intf_new);
++
++				// 3. Make sure that any AutoTarget SRV records (and the like) get updated
++				for (rr_new = m->ResourceRecords;  rr_new; rr_new=rr_new->next) if (rr_new->AutoTarget) SetTargetToHostName(m, rr_new);
++				for (rr_new = m->DuplicateRecords; rr_new; rr_new=rr_new->next) if (rr_new->AutoTarget) SetTargetToHostName(m, rr_new);
++				
++				mDNS_Unlock(m);
++				//LogMsg("Local Hostname %s already in use; will try %s.local instead",gExtraNames[index], m->extra_names[index].c);
++			}
++		}
++	}
++	//other: extra_names is hostlabel(like dlinkrouter or dlinkap)
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++
+     else if (result == mStatus_NameConflict)
+     {
+         domainlabel oldlabel = m->hostlabel;
+@@ -13306,9 +13458,11 @@
+     mDNS_SetupResourceRecord(&sr->RR_SRV, mDNSNULL, InterfaceID, kDNSType_SRV, hostTTL, recordType, artype, ServiceCallback, sr);
+     mDNS_SetupResourceRecord(&sr->RR_TXT, mDNSNULL, InterfaceID, kDNSType_TXT, kStandardTTL, kDNSRecordTypeUnique, artype, ServiceCallback, sr);
+ 
++#if 0  //TW modify for time machine
+     // If port number is zero, that means the client is really trying to do a RegisterNoSuchService
+     if (mDNSIPPortIsZero(port))
+         return(mDNS_RegisterNoSuchService(m, &sr->RR_SRV, name, type, domain, mDNSNULL, InterfaceID, NSSCallback, sr, flags));
++#endif
+ 
+     // If the client is registering an oversized TXT record,
+     // it is the client's responsibility to alloate a ServiceRecordSet structure that is large enough for it
+@@ -14298,6 +14452,10 @@
+         m->rrauth.rrauth_hash[slot] = mDNSNULL;
+ 
+     // Fields below only required for mDNS Responder...
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	m->extra_names_qty         = 0;
++	build_extra_names(m);
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+     m->hostlabel.c[0]          = 0;
+     m->nicelabel.c[0]          = 0;
+     m->MulticastHostname.c[0]  = 0;
+diff -uNrd mDNSResponder-625.41.2_original/mDNSCore/mDNSEmbeddedAPI.h mDNSResponder-625.41.2/mDNSCore/mDNSEmbeddedAPI.h
+--- mDNSResponder-625.41.2_original/mDNSCore/mDNSEmbeddedAPI.h	2018-01-17 14:54:14.432677387 +0800
++++ mDNSResponder-625.41.2/mDNSCore/mDNSEmbeddedAPI.h	2018-01-17 14:55:24.003674285 +0800
+@@ -2122,6 +2122,10 @@
+ //    struct with the same InterfaceID, mDNSCore picks one member of the set to be the
+ //    active representative of the set; all others have the 'InterfaceActive' flag unset.
+ 
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++enum{EXTRA_NAME_MAX_QTY = 3};
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++
+ struct NetworkInterfaceInfo_struct
+ {
+     // Internal state fields. These are used internally by mDNSCore; the client layer needn't be concerned with them.
+@@ -2143,6 +2147,10 @@
+     AuthRecord RR_PTR;                  // PTR (reverse lookup) record
+     AuthRecord RR_HINFO;
+ 
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	AuthRecord *EXTRA_RR_A[EXTRA_NAME_MAX_QTY];
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++
+     // Client API fields: The client must set up these fields *before* calling mDNS_RegisterInterface()
+     mDNSInterfaceID InterfaceID;        // Identifies physical interface; MUST NOT be 0, -1, or -2
+     mDNSAddr ip;                        // The IPv4 or IPv6 address to advertise
+@@ -2372,6 +2380,10 @@
+     domainlabel nicelabel;              // Rich text label encoded using canonically precomposed UTF-8
+     domainlabel hostlabel;              // Conforms to RFC 1034 "letter-digit-hyphen" ARPANET host name rules
+     domainname MulticastHostname;       // Fully Qualified "dot-local" Host Name, e.g. "Foo.local."
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	int extra_names_qty;
++	domainname  extra_names[EXTRA_NAME_MAX_QTY];
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+     UTF8str255 HIHardware;
+     UTF8str255 HISoftware;
+     AuthRecord DeviceInfo;
+diff -uNrd mDNSResponder-625.41.2_original/mDNSPosix/Makefile mDNSResponder-625.41.2/mDNSPosix/Makefile
+--- mDNSResponder-625.41.2_original/mDNSPosix/Makefile	2018-01-17 14:54:14.405677388 +0800
++++ mDNSResponder-625.41.2/mDNSPosix/Makefile	2018-01-17 14:55:49.590673144 +0800
+@@ -63,7 +63,8 @@
+ CP = cp
+ RM = rm
+ LN = ln -s -f
+-CFLAGS_COMMON = -I$(COREDIR) -I$(SHAREDDIR) -I$(OBJDIR) -fwrapv -W -Wall -DPID_FILE=\"/var/run/mdnsd.pid\" -DMDNS_UDS_SERVERPATH=\"/var/run/mdnsd\"
++CFLAGS_COMMON = -I$(COREDIR) -I$(SHAREDDIR) -I$(OBJDIR) -fwrapv -W -Wall -DPID_FILE=\"/var/run/mdnsd.pid\" -DMDNS_UDS_SERVERPATH=\"/var/run/mdnsd\" \
++	-DDEVICE_BY_INF -DELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+ CFLAGS_PTHREAD =
+ LINKOPTS =
+ LINKOPTS_PTHREAD = -lpthread
+diff -uNrd mDNSResponder-625.41.2_original/mDNSPosix/mDNSPosix.c mDNSResponder-625.41.2/mDNSPosix/mDNSPosix.c
+--- mDNSResponder-625.41.2_original/mDNSPosix/mDNSPosix.c	2018-01-17 14:54:14.406677388 +0800
++++ mDNSResponder-625.41.2/mDNSPosix/mDNSPosix.c	2018-01-17 14:56:07.172672361 +0800
+@@ -53,6 +53,10 @@
+ #include "mDNSUNP.h"
+ #include "GenLinkedList.h"
+ 
++#ifdef DEVICE_BY_INF
++char device_inf[10] = "br0";
++#endif
++
+ // ***************************************************************************
+ // Structures
+ 
+@@ -989,6 +993,13 @@
+                 }
+                 else
+                 {
++#ifdef DEVICE_BY_INF
++					if(strcasecmp(i->ifi_name, device_inf))
++					{
++						i = i->ifi_next;
++						continue;
++					}
++#endif
+                     if (SetupOneInterface(m, i->ifi_addr, i->ifi_netmask, i->ifi_name, i->ifi_index) == 0)
+                         if (i->ifi_addr->sa_family == AF_INET)
+                             foundav4 = mDNStrue;
+diff -uNrd mDNSResponder-625.41.2_original/mDNSPosix/Responder.c mDNSResponder-625.41.2/mDNSPosix/Responder.c
+--- mDNSResponder-625.41.2_original/mDNSPosix/Responder.c	2018-01-17 14:54:14.406677388 +0800
++++ mDNSResponder-625.41.2/mDNSPosix/Responder.c	2018-01-17 14:56:52.959670319 +0800
+@@ -32,6 +32,10 @@
+ #include <signal.h>
+ #include <fcntl.h>
+ 
++#ifdef DEVICE_BY_INF
++extern char device_inf[10];
++#endif
++
+ #if __APPLE__
+ #undef daemon
+ extern int daemon(int, int);
+@@ -184,7 +188,8 @@
+     mDNSBool result;
+ 
+     result = mDNStrue;
+-    if (result && (portNumber <= 0 || portNumber > 65535)) {
++	//TW modify for time machine
++    if (result && (portNumber < 0 || portNumber > 65535)) {
+         if (printExplanation) {
+             fprintf(stderr,
+                     "%s: Port number specified by -p must be in range 1..65535\n",
+@@ -208,9 +213,15 @@
+ 
+ static void PrintUsage()
+ {
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	fprintf(stderr,
++			"Usage: %s [-v level ] [-r] [-n name] [-t type] [-d domain] [-p port] [-f file] [-b] [-P pidfile] [-e extra_name] [-x name=val ...]\n", 
++			gProgramName);
++#else
+     fprintf(stderr,
+             "Usage: %s [-v level ] [-r] [-n name] [-t type] [-d domain] [-p port] [-f file] [-b] [-P pidfile] [-x name=val ...]\n",
+             gProgramName);
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+     fprintf(stderr, "          -v verbose mode, level is a number from 0 to 2\n");
+     fprintf(stderr, "             0 = no debugging info (default)\n");
+     fprintf(stderr, "             1 = standard debugging info\n");
+@@ -226,9 +237,15 @@
+     fprintf(stderr, "          -P uses 'pidfile' as the PID file\n");
+     fprintf(stderr, "             (default is '%s')\n",  kDefaultPIDFile);
+     fprintf(stderr, "             only meaningful if -b also specified\n");
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++	fprintf(stderr, "          -e set extra name list\n");
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+     fprintf(stderr, "          -x stores name=val in TXT record (default is empty).\n");
+     fprintf(stderr, "             MUST be the last command-line argument;\n");
+     fprintf(stderr, "             all subsequent arguments after -x are treated as name=val pairs.\n");
++#ifdef DEVICE_BY_INF
++	fprintf(stderr, "          -i Run in interface, br0, br1......\n");
++#endif
+ }
+ 
+ static mDNSBool gAvoidPort53      = mDNStrue;
+@@ -241,6 +258,10 @@
+ static const char *gServiceFile      = "";
+ static mDNSBool gDaemon           = mDNSfalse;
+ static const char *gPIDFile          = kDefaultPIDFile;
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++extern int gExtraNamesQty = 0;
++extern const char *gExtraNames[EXTRA_NAME_MAX_QTY];
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+ 
+ static void ParseArguments(int argc, char **argv)
+ // Parses our command line arguments into the global variables
+@@ -260,7 +281,11 @@
+     // Parse command line options using getopt.
+ 
+     do {
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++		ch = getopt(argc, argv, "v:rn:t:d:p:f:dP:bxi:e:");
++#else
+         ch = getopt(argc, argv, "v:rn:t:d:p:f:dP:bx");
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+         if (ch != -1) {
+             switch (ch) {
+             case 'v':
+@@ -299,6 +324,18 @@
+             case 'f':
+                 gServiceFile = optarg;
+                 break;
++#ifdef ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
++			case 'e':
++				//parse_extra_names(optarg);
++				if(gExtraNamesQty >= EXTRA_NAME_MAX_QTY)
++					printf("too many extra name, if you need more names, modify EXTRA_NAME_MAX_QTY\n");
++				else
++				{
++					gExtraNames[gExtraNamesQty] = strdup(optarg);
++					++gExtraNamesQty;
++				}
++				break;
++#endif //ELBOX_PROGS_GPL_MDNSRESPONDER_EXTRA_NAME
+             case 'b':
+                 gDaemon = mDNStrue;
+                 break;
+@@ -315,6 +352,12 @@
+                 }
+                 ch = -1;
+                 break;
++#ifdef DEVICE_BY_INF
++			case 'i':
++				memset(device_inf, 0, sizeof(device_inf));
++				strncpy(device_inf, optarg, 9);
++				break;
++#endif
+             case '?':
+             default:
+                 PrintUsage();
+diff -uNrd mDNSResponder-625.41.2_original/mDNSShared/dnsextd.c mDNSResponder-625.41.2/mDNSShared/dnsextd.c
+--- mDNSResponder-625.41.2_original/mDNSShared/dnsextd.c	2018-01-17 14:54:14.434677387 +0800
++++ mDNSResponder-625.41.2/mDNSShared/dnsextd.c	2018-01-17 14:57:38.601668284 +0800
+@@ -155,7 +155,7 @@
+     }
+     else
+     {
+-        openlog("dnsextd", LOG_CONS, LOG_DAEMON);
++        openlog("[MDNS]", LOG_CONS, LOG_DAEMON);
+         syslog(LOG_ERR, "%s", buffer);
+         closelog();
+     }
+diff -uNrd mDNSResponder-625.41.2_original/mDNSShared/PlatformCommon.c mDNSResponder-625.41.2/mDNSShared/PlatformCommon.c
+--- mDNSResponder-625.41.2_original/mDNSShared/PlatformCommon.c	2018-01-17 14:54:14.436677387 +0800
++++ mDNSResponder-625.41.2/mDNSShared/PlatformCommon.c	2018-01-17 14:58:07.552666994 +0800
+@@ -184,7 +184,7 @@
+             fflush(stderr);
+         }
+ 
+-        if (!log_inited) { openlog(ident, LOG_CONS, LOG_DAEMON); log_inited++; }
++        if (!log_inited) { openlog("[MDNS]", LOG_CONS, LOG_DAEMON); log_inited++; }
+ 
+ #if APPLE_OSX_mDNSResponder && LogTimeStamps
+         if (ident && ident[0] && mDNSPlatformClockDivisor)

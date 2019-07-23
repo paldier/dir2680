@@ -1,0 +1,63 @@
+diff --git a/net/netfilter/nf_conntrack_rtsp.c b/net/netfilter/nf_conntrack_rtsp.c
+--- a/net/netfilter/nf_conntrack_rtsp.c
++++ b/net/netfilter/nf_conntrack_rtsp.c
+@@ -862,3 +862,4 @@
+ 
+ module_init(init);
+ module_exit(fini);
++EXPORT_SYMBOL(nf_nat_rtsp_hook_expectfn);
+diff --git a/net/netfilter/nf_conntrack_expect.c b/net/netfilter/nf_conntrack_expect.c
+--- a/net/netfilter/nf_conntrack_expect.c
++++ b/net/netfilter/nf_conntrack_expect.c
+@@ -348,14 +348,12 @@
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_NF_CONNTRACK_RTSP 
+ /* wrapper to put expectation for RTCP port */
+ void nf_ct_expect_insert_rtcp(struct nf_conntrack_expect *exp)
+ {
+           nf_ct_expect_insert(exp);
+           nf_ct_expect_event_report(IPEXP_NEW, exp, 0, 0);
+ }
+-#endif
+ 
+ /* Race with expectations being used means we could have none to find; OK. */
+ static void evict_oldest_expect(struct nf_conn *master,
+@@ -656,3 +654,4 @@
+ 	rcu_barrier(); /* Wait for call_rcu() before destroy */
+ 	kmem_cache_destroy(nf_ct_expect_cachep);
+ }
++EXPORT_SYMBOL(nf_ct_expect_insert_rtcp);
+diff --git a/net/ipv4/netfilter/nf_nat_rtsp.c b/net/ipv4/netfilter/nf_nat_rtsp.c
+--- a/net/ipv4/netfilter/nf_nat_rtsp.c
++++ b/net/ipv4/netfilter/nf_nat_rtsp.c
+@@ -83,6 +83,7 @@
+ static u_int32_t extip = 0;
+ static int       dstact = 0;
+ 
++extern void (*nf_nat_rtsp_hook_expectfn)(struct nf_conn *ct, struct nf_conntrack_expect *exp);
+ 
+ MODULE_AUTHOR("Tom Marshall <tmarshall@real.com>");
+ MODULE_DESCRIPTION("RTSP network address translation module");
+@@ -673,7 +674,8 @@
+ /* This function is intentionally _NOT_ defined as  __exit */
+ static void fini(void)
+ {
+-	rcu_assign_pointer(nf_nat_rtsp_hook, NULL);
++	//rcu_assign_pointer(nf_nat_rtsp_hook, NULL);
++	 nf_nat_rtsp_hook = NULL;
+ 	nf_nat_rtsp_hook_expectfn = NULL;
+         synchronize_net();
+ }
+@@ -683,8 +685,9 @@
+ 	int ret = 0;
+ 
+ 	printk("nf_nat_rtsp v" IP_NF_RTSP_VERSION " loading\n");
++	 nf_nat_rtsp_hook = &nf_nat_rtsp;
+ 
+-	 rcu_assign_pointer(nf_nat_rtsp_hook, nf_nat_rtsp );
++	 //rcu_assign_pointer(nf_nat_rtsp_hook, nf_nat_rtsp );
+ 	 nf_nat_rtsp_hook_expectfn = &expected ;
+ 
+ 	if (stunaddr != NULL)

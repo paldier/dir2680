@@ -1,0 +1,25 @@
+#stop wan connection
+arca.dbus.misc:tr69_trigger stop
+#arca.dbus.voip:CMD_WAN_STOP
+#arca.dbus.sipproxy:CMD_WAN_STOP $(1)
+arca.dbus.ddns:CMD_STOP
+#arca.dbus.heartbeat:CMD_RESTART $(1)
+arca.dbus.dhcpc:CMD_STOP $(1)
+arca.dbus.wanppp:CMD_STOP $(1)
+arca.dbus.dhcp6c:CMD_STOP $(1)
+arca.dbus.nat64:CMD_STOP
+arca.dbus.v6rd:CMD_STOP
+arca.dbus.v6to4:CMD_STOP
+arca.dbus.misc:routes6 CMD_STOP
+arca.dbus.radvd:CMD_STOP
+arca.dbus.dhcp6d:CMD_STOP
+arca.dbus.misc:if6 CMD_STOP $(1)
+arca.dbus.dslite:CMD_STOP
+arca.dbus.ula:CMD_STOP
+arca.dbus.autowandetect:CMD_AUTO_IP6_STOP
+arca.dbus.misc:wan_disconnected
+arca.dbus.dnsmasq:CMD_CLEAR_CACHE
+arca.dbus.misc:airupgrade CMD_STOP
+arca.dbus.firewall:FWD_FAIL
+#For WAN cable issue. Please keep this line at the end.
+#arca.dbus.wanstatus:CMD_SYNC

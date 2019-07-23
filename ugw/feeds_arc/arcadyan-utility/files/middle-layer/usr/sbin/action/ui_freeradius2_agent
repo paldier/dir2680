@@ -1,0 +1,12 @@
+#/usr/sbin/saveaction "$0 $@"
+
+if [ "$1" = "apply" ]; then
+    freeradius2-agent policy_group apply
+    /etc/init.d/radiusd restart
+else
+    freeradius2-agent "$@"
+fi
+
+mng_cli commit
+
+exit 0

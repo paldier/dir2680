@@ -1,0 +1,24 @@
+#!/bin/sh
+
+account_idx=$2
+
+if [ "$account_idx" = "" ]; then
+	echo "[arc_sip_account] You must specify a valid account index!" > /dev/console
+	return 0;
+fi
+
+case "$1" in
+	"CMD_BOOT" | "CMD_START" | "CMD_RESTART")
+        	
+	/usr/sbin/sip_config SIP_CORE_Multi_Account_Reset 1 1 0 1 0 $account_idx $3
+
+		;;
+
+	"CMD_STOP")
+
+		;;
+
+	*)
+		echo $0 'sip add account          - notify brnsip '
+		;;
+esac

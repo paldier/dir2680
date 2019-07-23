@@ -1,0 +1,7 @@
+#due to driver implementation, led mapping here will be defined as 
+#name=led_index, actually the "led_index" is the "name" field defined in
+#the lantiq bsp
+led_orange=1
+led_blue=5
+led_red=8
+led_green=9

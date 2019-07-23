@@ -1,0 +1,54 @@
+diff --git a/package/kernel/linux/modules/netfilter.mk b/package/kernel/linux/modules/netfilter.mk
+--- a/package/kernel/linux/modules/netfilter.mk
++++ b/package/kernel/linux/modules/netfilter.mk
+@@ -850,3 +850,50 @@ endef
+ 
+ $(eval $(call KernelPackage,nft-nat6))
+ 
++define KernelPackage/nf-conntrack-sip
++  TITLE:=Connection tracking sip
++  FILES:=$(LINUX_DIR)/net/netfilter/nf_conntrack_sip.ko
++  KCONFIG:=CONFIG_NF_CONNTRACK_SIP
++  AUTOLOAD:=$(call AutoProbe,nf_conntrack_sip)
++endef
++$(eval $(call KernelPackage,nf-conntrack-sip))
++
++define KernelPackage/nf-nat-sip
++  TITLE:=Connection tracking nat sip
++  FILES:=$(LINUX_DIR)/net/netfilter/nf_nat_sip.ko
++  KCONFIG:=CONFIG_NF_NAT_SIP
++  AUTOLOAD:=$(call AutoProbe,nf_nat_sip)
++endef
++$(eval $(call KernelPackage,nf-nat-sip))
++
++define KernelPackage/nf-conntrack-rtsp
++  TITLE:=Connection conntack rtsp
++  FILES:=$(LINUX_DIR)/net/netfilter/nf_conntrack_rtsp.ko
++  KCONFIG:=CONFIG_NF_CONNTRACK_RTSP
++  AUTOLOAD:=$(call AutoProbe,nf_conntrack_rtsp)
++endef
++$(eval $(call KernelPackage,nf-conntrack-rtsp))
++
++define KernelPackage/nf-nat-rtsp
++  TITLE:=Connection nat rtsp
++  FILES:=$(LINUX_DIR)/net/ipv4/netfilter/nf_nat_rtsp.ko
++  KCONFIG:=CONFIG_NF_NAT_RTSP
++  AUTOLOAD:=$(call AutoProbe,nf_nat_rtsp)
++endef
++$(eval $(call KernelPackage,nf-nat-rtsp))
++
++define KernelPackage/nf-conntrack-ftp
++  TITLE:=Connection tracking ftp
++  FILES:=$(LINUX_DIR)/net/netfilter/nf_conntrack_ftp.ko
++  KCONFIG:=CONFIG_NF_CONNTRACK_FTP
++  AUTOLOAD:=$(call AutoProbe,nf_conntrack_ftp)
++endef
++$(eval $(call KernelPackage,nf-conntrack-ftp))
++
++define KernelPackage/nf-nat-ftp
++  TITLE:=Connection tracking nat ftp
++  FILES:=$(LINUX_DIR)/net/netfilter/nf_nat_ftp.ko
++  KCONFIG:=CONFIG_NF_NAT_FTP
++  AUTOLOAD:=$(call AutoProbe,nf_nat_ftp)
++endef
++$(eval $(call KernelPackage,nf-nat-ftp))

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+case "$1" in
+	"CMD_BOOT" | "CMD_START" | "CMD_RESTART")
+        	
+	/usr/sbin/sip_config SIP_CORE_Phone_CFGSync 0 
+
+		;;
+
+	"CMD_STOP")
+
+		;;
+
+	*)
+		echo $0 'sip sync phone          - sync phone '
+		;;
+esac

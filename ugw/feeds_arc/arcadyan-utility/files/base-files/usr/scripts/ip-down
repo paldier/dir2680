@@ -1,0 +1,78 @@
+#!/bin/sh
+
+rm -f /tmp/ppp/link
+
+wan_index=$6
+if [ "$wan_index" = "" ]; then
+	wan_index=0
+fi
+
+echo "###### [ip-down], wanindex=$wan_index, #6=$6" > /dev/console
+
+
+dft_wan_idx=`mng_cli get ARC_WAN_DefaultRouteIdx`
+if [ "$dft_wan_idx" = "" ]; then
+	dft_wan_idx=0
+fi
+
+pppoe_demand=`mng_cli get ARC_WAN_${wan_index}_PPP_OnDemand_PPPOE`
+pptp_demand=`mng_cli get ARC_WAN_${wan_index}_PPP_OnDemand_PPTP`
+l2tp_demand=`mng_cli get ARC_WAN_${wan_index}_PPP_OnDemand_L2TP`
+wan0_ifname=`mng_cli get ARC_WAN_${wan_index}_Ifname`
+wan_restarting=`mng_cli tmp_get ARC_WAN_${wan_index}_PPP_Restarting`
+wan_pptp_dhcp=`mng_cli get ARC_WAN_${wan_index}_PPTP_IP4_DHCP`
+wan_l2tp_dhcp=`mng_cli get ARC_WAN_${wan_index}_L2TP_IP4_DHCP`
+wan_proto=`mng_cli get ARC_WAN_${wan_index}_IP4_Proto`
+wan_ifname="ppp$wan_index"
+ppacmd delwan -i $wan_ifname
+
+mng_cli set ARC_WAN_${wan_index}_PPP_GET_IP4_Addr="0.0.0.0" set ARC_WAN_${wan_index}_PPP_GET_IP4_Netmask="0.0.0.0" set ARC_WAN_${wan_index}_PPP_GET_IP4_Gateway="0.0.0.0"  set ARC_WAN_${wan_index}_PPP_Status="Disconnected" action ""
+
+if [ $wan_proto = "pptp" ] && [ "$wan_pptp_dhcp" = "1" ] ; then
+	old_dns=`mng_cli tmp_get TMP_WAN_${wan_index}_IP4_DNS`
+	mng_cli set ARC_WAN_${wan_index}_IP4_DNS="$old_dns"
+elif [ $wan_proto = "l2tp" ] && [ "$wan_l2tp_dhcp" = "1" ] ; then
+	old_dns=`mng_cli tmp_get TMP_WAN_${wan_index}_IP4_DNS`
+	mng_cli set ARC_WAN_${wan_index}_IP4_DNS="$old_dns"
+else
+	mng_cli set ARC_WAN_${wan_index}_IP4_DNS=""
+fi
+
+if [ $wan_index = $dft_wan_idx ]; then
+	sysdns=`mng_cli get ARC_SYS_DNS`
+	if [ -n "$sysdns" ]; then
+		mng_cli set ARC_SYS_DNS="" 
+		mng_cli action wan_disconnected
+	fi
+	#arc_led led_blue off
+fi
+
+if [ -f "/tmp/ppp_stopped" ]; then 
+	rm -rf /tmp/ppp_stopped
+fi
+
+
+if [ "$pppoe_demand" = "1" ] || [ "$pptp_demand" = "1" ] ||  [ "$l2tp_demand" = "1" ] ; then
+	#mng_cli action wan_stop
+	if [ $wan_index = $dft_wan_idx ]; then
+	    if [ "$1" = "1" ] && [ "$2" = "2" ] && [ "$3" = "3" ] && [ "$4" = "4" ] && [ "$5" = "5" ] ; then
+                echo "In initial stage??? Do not call wan_start now!" >> /dev/console
+	    else
+                	mng_cli action wan_start="wan_idx=$wan_index"
+		fi
+	    fi
+else
+	if [ $wan_index = $dft_wan_idx ] ; then
+		mng_cli action wan_update="wan_idx=$wan_index"
+	else
+		mng_cli action wan1_update="wan_idx=$wan_index"
+	fi
+fi
+
+# Velmurugan 11102014> ETB VRX220 Internet LED behavior
+
+	if [ "x$wan_index" == "x0" ]; then
+		#arc_sm_led start 6	
+		#arc_led internet_g off
+		killall arc_tfledd
+	fi

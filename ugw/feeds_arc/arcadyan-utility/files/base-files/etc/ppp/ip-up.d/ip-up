@@ -1,0 +1,55 @@
+#!/bin/sh
+
+# Openwrt calls /usr/sbin/pppd with ip-up-script=/lib/netifd/ppp-up, ipv6-up-script/lib/netifd/ppp-up, ip-down-script=/lib/netifd/ppp-down, and ipv6-down-script/lib/netifd/ppp-down.
+# ppp-up will call files in /etc/ppp/ip-up.d/* and ppp-down will call files in /etc/ppp/ip-down.d/*.
+# Environment list:
+# USEPEERDNS: use remove assigned dns servers
+# IPLOCAL: local address
+# IPREMOTE: remove address
+# LLLOCAL:
+# DNS1: dns server 1
+# DNS2: dns server 2
+
+# Script input arguments:
+# 0: full script name
+# 1: ppp interface name, Ex:pppoe-wan
+# 2: ppp physical device name: Ex: nas0
+# 3: speed
+# 4: local address
+# 5: remove address
+# 6: interface section, Ex: wan
+
+#save values
+if [ -n "$DNS1" ]; then
+	if  [ -n "$DNS2" ]; then
+		new_domain_name_servers1=$DNS1
+		new_domain_name_servers2=$DNS2
+	else
+		new_domain_name_servers1=$DNS1
+	fi
+elif [ -n "$DNS2" ]; then
+	new_domain_name_servers2=$DNS2
+else
+	new_domain_name_servers1=""
+	new_domain_name_servers2=""
+fi
+
+default_wan=`mng_cli get ARC_WAN_DefaultRouteIdx`
+wan_type=`mng_cli get ARC_WAN_Type`
+INTERFACE=$6
+interface_section=${INTERFACE:0:3}
+tmp_index=`echo ${INTERFACE:3:6} | awk '{printf "%d", $1}'`
+wan_index=${wan_type}" "${tmp_index}
+IFNAME=$1
+echo "[ppp-ip] INTERFACE:$INTERFACE, wan_index:$wan_index, IFNAME:$IFNAME" > /dev/console
+
+abscfg set ARC_WAN_xy_TMP_PPP_GET_IP4_Addr ${wan_index} "$IPLOCAL"
+abscfg set ARC_WAN_xy_TMP_PPP_GET_IP4_Netmask ${wan_index} "255.255.255.255"
+abscfg set ARC_WAN_xy_TMP_PPP_GET_IP4_Gateway ${wan_index} "$IPREMOTE"
+abscfg set ARC_WAN_xy_TMP_IP4_DNS_Runtime1 ${wan_index} "$new_domain_name_servers1"
+abscfg set ARC_WAN_xy_TMP_IP4_DNS_Runtime2 ${wan_index} "$new_domain_name_servers2"
+abscfg set ARC_WAN_xy_TMP_GET_MTU ${wan_index} "$MTU"
+abscfg set ARC_WAN_xy_TMP_Iface ${wan_index} "$IFNAME"
+abscfg set ARC_WAN_xy_TMP_PPP_Status ${wan_index} "Connected"
+abscfg set ARC_WAN_xy_TMP_Connect_Status ${wan_index} 2
+abscfg set ARC_WAN_TMP_IPv4_WAN_Ready 1

@@ -1,0 +1,20 @@
+diff --git a/drivers/mtd/nand/nand_base.c b/drivers/mtd/nand/nand_base.c
+--- a/drivers/mtd/nand/nand_base.c
++++ b/drivers/mtd/nand/nand_base.c
+@@ -3105,6 +3105,8 @@
+ 		/* Get buswidth information */
+ 		*busw = (extid & 0x01) ? NAND_BUSWIDTH_16 : 0;
+ 
++		/* For skipping BENAND check. Add by Andy, 20160518 */
++#ifdef CONFIG_MTD_NAND_BENAND
+ 		if (id_len >= 6 && id_data[0] == NAND_MFR_TOSHIBA &&
+ 			!(chip->cellinfo & NAND_CI_CELLTYPE_MSK) &&
+ 			(id_data[5] & 0x7) == 0x6) { /* 24nm */ 
+@@ -3114,6 +3116,7 @@
+ 			else
+ 				mtd->oobsize = 32 * mtd->writesize >> 9; /* !BENAND */
+ 		}
++#endif
+ 	}
+ }
+ 

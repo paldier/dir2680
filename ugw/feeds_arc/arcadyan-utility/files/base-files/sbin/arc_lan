@@ -1,0 +1,76 @@
+#!/bin/sh
+
+IPTV_ifname=`mng_cli get ARC_VLAN_IPTV_Ifname`
+VOIP_ifname=`mng_cli get ARC_VLAN_VOIP_Ifname`
+if [ "$IPTV_ifname" == "" ]; then
+IPTV_ifname="br2"
+fi
+if [ "$VOIP_ifname" == "" ]; then
+VOIP_ifname="br3"
+fi
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+		wan0_proto=`mng_cli get ARC_WAN_0_IP4_Proto`
+
+		if [ $wan0_proto = "bridge" ] ; then
+			echo "bridge mode"
+			ifconfig br0 up
+		else
+			echo 0 > /proc/sys/net/ipv6/conf/br0/disable_ipv6
+			ip4addr=`mng_cli get ARC_LAN_0_IP4_Addr`
+			ip4mask=`mng_cli get ARC_LAN_0_IP4_Netmask`
+			ifconfig br0 $ip4addr netmask $ip4mask up
+			#set ipv6 site-local address
+			eui64=`ifconfig br0 |
+			egrep "inet6 (addr: )?fe80" |
+			sed -n "s/^.*fe80::\([0-9a-f\:]*\).*/\1/p"`
+			ifconfig br0 fec0::$eui64/128
+		fi
+
+		#for guest network
+		ip4addr=`mng_cli get ARC_LAN_1_IP4_Addr`
+		ip4mask=`mng_cli get ARC_LAN_1_IP4_Netmask`
+		ifconfig br1 $ip4addr netmask $ip4mask up
+
+		ifconfig $IPTV_ifname up
+		ifconfig $VOIP_ifname up
+		;;
+
+	"start" | "CMD_START")
+		wan0_proto=`mng_cli get ARC_WAN_0_IP4_Proto`
+
+		if [ $wan0_proto = "bridge" ] ; then
+			echo "bridge mode"
+			ifconfig br0 up
+		else
+			ip4addr=`mng_cli get ARC_LAN_0_IP4_Addr`
+			ip4mask=`mng_cli get ARC_LAN_0_IP4_Netmask`
+			ifconfig br0 $ip4addr netmask $ip4mask up
+			#set ipv6 site-local address
+			eui64=`ifconfig br0 |
+			egrep "inet6 (addr: )?fe80" |
+			sed -n "s/^.*fe80::\([0-9a-f\:]*\).*/\1/p"`
+			ifconfig br0 fec0::$eui64/128
+		fi
+
+		#for guest network
+		ip4addr=`mng_cli get ARC_LAN_1_IP4_Addr`
+		ip4mask=`mng_cli get ARC_LAN_1_IP4_Netmask`
+		ifconfig br1 $ip4addr netmask $ip4mask up
+
+		ifconfig $IPTV_ifname up
+		ifconfig $VOIP_ifname up
+		;;
+
+	"stop" | "CMD_STOP")
+		ifconfig br0 0.0.0.0 down
+		ifconfig br1 0.0.0.0 down
+		;;
+
+	*)
+		echo $0 'boot          - setup and start LAN interface'
+		echo $0 'start         - setup and start LAN interface'
+		echo $0 'stop          - stop and delete LAN interface'
+		;;
+esac

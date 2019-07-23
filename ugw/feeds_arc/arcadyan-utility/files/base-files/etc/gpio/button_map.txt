@@ -1,0 +1,15 @@
+#button should be define link this
+#name=gpio
+#active=[low/high]
+#spec=duration
+#the order of the keywords are critical
+
+#define the button "wps"
+wps=30
+active=low
+spec=1000
+
+#define button "default"
+default=0
+active=low
+spec=3000

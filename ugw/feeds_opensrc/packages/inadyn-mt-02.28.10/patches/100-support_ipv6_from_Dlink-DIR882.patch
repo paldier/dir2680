@@ -1,0 +1,810 @@
+diff --git a/src/dyndns.c b/src/dyndns.c
+index 8cd3f26..3cd329e 100644
+--- a/src/dyndns.c
++++ b/src/dyndns.c
+@@ -231,6 +231,7 @@ static int get_req_for_dyndns_server(DYN_DNS_CLIENT *this, struct EXP_MAPPING *p
+ static int get_req_for_freedns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info);
+ static int get_req_for_generic_http_dns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info);
+ static int get_req_for_noip_http_dns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info);
++static int get_req_for_dlink_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info);
+ static int get_req_for_easydns_http_dns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info);
+ static int get_req_for_sitelutions_http_dns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info);
+ static int get_req_for_tzo_http_dns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt, DYNDNS_SYSTEM *p_sys_info);
+@@ -385,6 +386,13 @@ DYNDNS_SYSTEM_INFO dns_system_table[] =
+ 			(DNS_SYSTEM_REQUEST_FUNC) get_req_for_generic_custom_http_dns_server,
+ 			GENERIC_DNS_IP_SERVER_NAME, DYNDNS_MY_IP_SERVER_URL,
+ 			"", "", "OK"}},
++			
++		{DYNDNS_DLINK,
++			{"default@dlinkddns.com", NULL,0,0,
++			(DNS_SYSTEM_SRV_RESPONSE_OK_FUNC)is_dyndns_server_rsp_ok,
++			(DNS_SYSTEM_REQUEST_FUNC)get_req_for_dlink_server,
++			DYNDNS_MY_IP_SERVER, DYNDNS_MY_IP_SERVER_URL,
++			DYNDNS_MY_DNS_SERVER, DYNDNS_MY_DNS_SERVER_URL, NULL}},
+ 
+ 		{LAST_DNS_SYSTEM, {NULL, NULL, 0, 0, NULL, NULL, NULL, NULL}}
+     };
+@@ -598,18 +606,16 @@ static int get_req_for_dyndns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING
+ 
+ 	memset(p_self->p_req_buffer,0,DYNDNS_HTTP_REQUEST_BUFFER_SIZE);
+ 
+-
+ 	bytes_stored=sprintf(p_self->p_req_buffer, DYNDNS_GET_MY_IP_HTTP_REQUEST_FORMAT,
+ 	                     p_self->info[srv_cnt].dyndns_server_name.url,
+-	                     p_dyndns_specific->p_system,
+ 	                     p_self->info[srv_cnt].alias_info.names[cnt].name,
+ 	                     p_self->info[srv_cnt].alias_info.p_address[cnt]->my_ip_address.name[ip_store],
+-	                     p_self->info[srv_cnt].wildcard ? "ON" : "OFF",
+-	                     p_self->info[srv_cnt].alias_info.names[cnt].name,
++	                     DYNDNS_AGENT_NAME,
+ 	                     p_self->info[srv_cnt].dyndns_server_host,
+ 	                     p_self->info[srv_cnt].credentials.p_enc_usr_passwd_buffer);
+ 
+ 
++
+ 	return bytes_stored;
+ }
+ 
+@@ -776,7 +782,7 @@ static RC_TYPE fetch_afraid_hashes(DYNDNS_INFO_TYPE *info,char **hashes_str)
+ 				strlen(info->dyndns_server_host);
+ 
+ 	http_transaction_construct(&hash_trans,req_buf_len+1,DYNDNS_HTTP_REQUEST_FORMAT,DYNDNS_HTTP_RESPONSE_BUFFER_SIZE,
+-					req_url,info->dyndns_server_host);
++					req_url,DYNDNS_AGENT_NAME , info->dyndns_server_host);
+ 
+ 	DBG_PRINTF((LOG_INFO,"I:DYNDNS: freedns_afraid.org hashes request:\n%s\n",hash_trans.p_req));
+ 
+@@ -859,13 +865,24 @@ static int get_req_for_freedns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING
+ 	               p_self->info[srv_cnt].dyndns_server_host);
+ }
+ 
++
+ static int get_req_for_noip_http_dns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info)
+ {
+ 	(void)p_sys_info;
+-	return sprintf(p_self->p_req_buffer, GENERIC_NOIP_AUTH_MY_IP_REQUEST_FORMAT,
++	return sprintf(p_self->p_req_buffer, GENERIC_NOIP_AUTH_MY_IP_REQUEST_FORMAT_NEW,
+ 	               p_self->info[srv_cnt].dyndns_server_name.url,
+ 	               p_self->info[srv_cnt].alias_info.names[cnt].name,
+-	               p_self->info[srv_cnt].alias_info.p_address[cnt]->my_ip_address.name[ip_store],
++	               p_self->info[srv_cnt].credentials.p_enc_usr_passwd_buffer,
++	               p_self->info[srv_cnt].dyndns_server_host);
++}
++
++static int get_req_for_dlink_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt,  DYNDNS_SYSTEM *p_sys_info)
++{
++	(void)p_sys_info;
++	return sprintf(p_self->p_req_buffer, DLINKDDNS_GET_MY_IP_HTTP_REQUEST_FORMAT_NEW,
++	               p_self->info[srv_cnt].dyndns_server_name.url,
++	               p_self->info[srv_cnt].alias_info.names[cnt].name,
++					 "ON",
+ 	               p_self->info[srv_cnt].credentials.p_enc_usr_passwd_buffer,
+ 	               p_self->info[srv_cnt].dyndns_server_host);
+ }
+@@ -1004,7 +1021,7 @@ static int get_req_for_ip_server(DYN_DNS_CLIENT *p_self, IP_ADDRESS *p_address,v
+ {
+ 	(void)p_specific_data;
+ 
+-	return sprintf(p_self->p_req_buffer,DYNDNS_GET_MY_IP_HTTP_REQUEST,p_address->ip_server_url,p_address->ip_server_host);
++	return sprintf(p_self->p_req_buffer,DYNDNS_HTTP_REQUEST_FORMAT,p_address->ip_server_url,DYNDNS_AGENT_NAME,p_address->ip_server_host);
+ }
+ 
+ static int get_req_for_generic_http_dns_server(DYN_DNS_CLIENT *p_self, struct EXP_MAPPING *p_mapping, char srv_cnt, int cnt, DYNDNS_SYSTEM *p_sys_info)
+@@ -1517,6 +1534,8 @@ static RC_TYPE do_check_my_ip_address(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_se
+ 	char		*p_current_str=p_self->http_tr.p_rsp;
+ 	char		*p_ip_str;
+ 
++
++
+ 	if (p_self->http_tr.rsp_len <= 0 || p_self->http_tr.p_rsp == NULL) {
+ 
+ 		return RC_INVALID_POINTER;
+@@ -1529,7 +1548,6 @@ static RC_TYPE do_check_my_ip_address(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_se
+ 	else {
+ 
+ 		update_ip_addr_store(p_address,p_ip_str);
+-
+ 		free(p_ip_str);
+ 
+ 		return RC_OK;
+@@ -1664,9 +1682,8 @@ static RC_TYPE check_my_ip_address(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_self)
+ 
+ 					continue;
+ 				}
+-
++				
+ 				if (!(RC_OK==(rc=http_client_transaction(&p_address->http_to_ip_server,&p_self->http_tr)))) {
+-
+ 					DBG_PRINTF((LOG_ERR,"E:" MODULE_TAG "Failed getting %s ip from %s%s in check_my_ip_address...\n",
+ 						addr_family_get_name(addr->ai_family),p_address->ip_server,p_address->ip_server_url));
+ 				}
+@@ -1718,13 +1735,15 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 	int			config_fails=0;
+ 	int			updates_needed=p_self->info[srv_index].alias_info.count;
+ 	DYNDNS_IPV		ip_auto_to_v;
+-	RC_TYPE			rc2;
++	RC_TYPE			rc2=RC_OK;
+ 	RC_TYPE 		rc=RC_OK;
+ 	int			is_hashes_fetch;
+ 	int			is_got_hashes=0;
+ 
+ 
+ 	info=&p_self->info[srv_index];
++	
++
+ 
+ 	if (is_hashes_fetch=(0==strcmp(info->p_dns_system->p_key,"default@freedns.afraid.org")))
+ 
+@@ -1745,6 +1764,7 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 				updates_needed--;
+ 			}
+ 			else {
++				
+ 				ip_auto_to_v=actual_alias_ipv(info->alias_info.p_address[i],info->alias_info.names[i].ip_v_enum);
+ 
+ 				if (is_hashes_fetch) {
+@@ -1784,7 +1804,7 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 						continue;
+ 					}
+ 				}
+-
++#if 0
+ 				if (!(strlen(info->alias_info.p_address[i]->my_ip_address.name[ip_store]))) {
+ 
+ 					info->alias_info.update_succeeded[i]=false;
+@@ -1793,6 +1813,7 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 
+ 					continue;
+ 				}
++#endif				
+ 
+ 				/*bind to dynamic dns server according to address type to be updated*/
+ 				http_client_set_is_ip(&info->http_to_dyndns,((info->alias_info.names[i].ip_v_enum==ip_4) &&
+@@ -1860,6 +1881,26 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 								info->alias_info.update_required[i]=false;
+ 								info->alias_info.update_succeeded[i]=true;
+ 
++                                /* add by EAP for output state and handle IPv6 DDNS */
++								if(p_self->is_private_ipv6_addr != TRUE)
++								{
++									FILE *pFile;
++									char sBuf[32] = {0};
++									pFile = fopen( "/tmp/ddnstate","w" );
++									sprintf(sBuf, "2"); // connected
++									if(pFile)
++								    {
++	    								fwrite(sBuf, sizeof(sBuf), 1, pFile);
++	    								fclose(pFile);
++								    }
++									
++									openlog(LOG_DDNS, LOG_NDELAY, LOG_DAEMON);
++									setlogmask( LOG_UPTO(LOG_NOTICE ));
++									syslog(LOG_NOTICE , "DDNS client connect success!" );
++									closelog();
++	                                os_shell_execute("rc upadte_DDNS_ipv6 &");
++								}
++                                /****************************************************/
+ 								DBG_PRINTF((LOG_WARNING,"W:" MODULE_TAG "Alias '%s' to IP '%s' updated successfully.\n",
+ 											info->alias_info.names[i].name,info->alias_info.p_address[i]->my_ip_address.name[ip_store]));
+ 
+@@ -1880,8 +1921,29 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 									}
+ 									else {
+ 										if (strstr(http_tr.p_rsp,"badagent"))
+-
++									    {
+ 											DBG_PRINTF((LOG_ERR,"E:" MODULE_TAG "Server responded with 'badagent'.  Attempting to update IPv6 to IPv4 only server?  Try ip4 parameter, e.g., --alias youralias ip4.\n"));
++									    }
++										
++										if(p_self->is_private_ipv6_addr != TRUE)
++										{
++
++	                                        /* add by EAP for output state */
++											FILE *pFile;
++											char sBuf[32] = {0};
++											pFile = fopen( "/tmp/ddnstate","w" );
++											sprintf(sBuf, "0"); // Discnnected
++											if (pFile)
++										    {
++	    										fwrite(sBuf, sizeof(sBuf), 1, pFile);
++	    										fclose(pFile);
++										    }
++											openlog(LOG_DDNS, LOG_NDELAY, LOG_DAEMON);
++											setlogmask( LOG_UPTO(LOG_NOTICE ));
++											syslog(LOG_NOTICE , "DDNS client connect fault!" );
++											closelog();
++										}
++                                        /*******************************/
+ 
+ 										DBG_PRINTF((LOG_WARNING,"W:" MODULE_TAG "Error validating DYNDNS svr answer. Check usr,pass,hostname!\n"));
+ 
+@@ -2090,6 +2152,53 @@ static RC_TYPE dyn_dns_handle_bad_config(DYN_DNS_CLIENT *p_self,char srv_cnt)
+ 	return do_handle_bad_config(p_self,i,srv_cnt);
+ }
+ 
++static RC_TYPE update_private_IPV4_address(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_self)
++{
++	p_address->my_ip_address.name[ip_4][0] = 0;
++	p_address->my_ip_address.name[ip_6][0] = 0;
++	p_address->my_ip_address.name[ip_store][0] = 0;
++
++	memset(&p_address->net_addr[ip_4],0,sizeof(struct sockaddr_storage));
++	memset(&p_address->net_addr[ip_6],0,sizeof(struct sockaddr_storage));
++	memset(&p_address->net_addr[ip_store],0,sizeof(struct sockaddr_storage));
++	
++	p_address->is_got_ip4 = TRUE;
++	p_address->is_updated = TRUE;
++
++	DBG_PRINTF((LOG_NOTICE,"N:DYNDNS: IPV4 address set NULL\n"));
++
++	return RC_OK;
++}
++
++
++static RC_TYPE update_private_IPV6_address(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_self)
++{
++	void	*in_addr;
++	int 	sock_size;
++	unsigned char	ip_str_to_ip[16];
++
++
++	in_addr=&(((struct sockaddr_in6*) &p_address->net_addr[ip_6])->sin6_addr);
++	sock_size=sizeof(struct in6_addr);
++
++	inet_pton_w( AF_INET6 , p_self->private_ipv6_addr , ip_str_to_ip);
++
++	memcpy(in_addr,ip_str_to_ip,sock_size);
++	strcpy(p_address->my_ip_address.name[ip_6],p_self->private_ipv6_addr);
++
++	strcpy(p_address->my_ip_address.name[ip_store],p_self->private_ipv6_addr);
++	memcpy(&p_address->net_addr[ip_store],&p_address->net_addr[ip_6],sizeof(struct sockaddr_storage));
++
++	p_address->is_got_ip6 = TRUE;
++	p_address->is_updated = TRUE;
++
++	DBG_PRINTF((LOG_NOTICE,"N:DYNDNS: My IP address: %s\n", p_address->my_ip_address.name[ip_store]));
++
++	return RC_OK;
++}
++
++
++
+ static RC_TYPE update_address_store(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_self)
+ {
+ 
+@@ -2101,9 +2210,11 @@ static RC_TYPE update_address_store(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_self
+ 
+ 	DBG_PRINTF((LOG_INFO,"I:DYNDNS: update_ip_store entering connect loop...\n"));
+ 
++
+ 	while (!(is_exit=(is_exit_requested(p_self)))) {
+ 
+ 		if (!(do_is_dyndns_online(p_self))) {
++			
+ 
+ 			if ((is_exit=(p_self->net_retries<net_attempts++)))
+ 
+@@ -2113,6 +2224,7 @@ static RC_TYPE update_address_store(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_self
+ 		}
+ 		else {
+ 
++
+ 			/*ask IP server something so will respond and give me my IP */
+ 			rc = check_my_ip_address(p_address,p_self);
+ 
+@@ -2137,8 +2249,8 @@ static RC_TYPE update_address_store(IP_ADDRESS *p_address,DYN_DNS_CLIENT *p_self
+ 		DBG_PRINTF((LOG_INFO,"I:DYNDNS: Exit requested or not online in update_address_store...\n"));
+ 
+ 	if (!(RC_OK==rc))
+-
+ 		DBG_PRINTF((LOG_WARNING,"W:DYNDNS: Error '%s' (0x%x) when talking to IP server\n",errorcode_get_name(rc), rc));
++	
+ 
+ 	return rc;
+ }
+@@ -2163,6 +2275,7 @@ static RC_TYPE do_dyn_dns_update_ip(DYN_DNS_CLIENT *p_self,int srv_cnt)
+ 	char	is_forced_update_reset=0;
+ 
+ 
++
+ 	if (p_self == NULL)
+ 	{
+ 		return RC_INVALID_POINTER;
+@@ -2188,9 +2301,11 @@ static RC_TYPE do_dyn_dns_update_ip(DYN_DNS_CLIENT *p_self,int srv_cnt)
+ 		DBG_PRINTF((LOG_INFO,"I:DYNDNS: dyn_dns_update_ip entering update loop...\n"));
+ 
+ 		while(!(is_exit_requested(p_self))) {
+-
++#if 0
+ 			if (!(do_is_dyndns_online(p_self))) {
+-
++#else
++			if (0) {
++#endif
+ 				if (p_self->net_retries<net_attempts++) {
+ 
+ 					p_self->info[srv_cnt].is_update_pending=true;
+@@ -2217,6 +2332,7 @@ static RC_TYPE do_dyn_dns_update_ip(DYN_DNS_CLIENT *p_self,int srv_cnt)
+ 
+ 					break;
+ 				}
++				
+ 
+ 				DBG_PRINTF((LOG_WARNING,"W:DYNDNS: Failed updating alias table...\n"));
+ 
+@@ -2294,7 +2410,7 @@ static RC_TYPE fetch_addresses(gen_list i_face,DYN_DNS_CLIENT *p_self)
+ 	I_FACE		*p_iface;
+ 	IP_ADDRESS	*p_address;
+ 	RC_TYPE		rc=RC_ERROR;
+-
++	
+ 	iface_itr=list_get_itr(i_face);
+ 	list_begin(i_face,iface_itr);
+ 
+@@ -2308,11 +2424,28 @@ static RC_TYPE fetch_addresses(gen_list i_face,DYN_DNS_CLIENT *p_self)
+ 		while (!(list_end(addr_list_itr))) {
+ 
+ 			p_address=list_entry_item(addr_list_itr);
+-
+-			if ((is_global_update_pending && p_address->is_updated) || (p_address->dependents_fatal==p_address->dependents))
+-
++			
++			 				
++			if(p_self->is_private_ipv6_addr == TRUE)
++			{
++				p_address->is_updated=0;
++				p_address->is_got_ip4=0;
++				p_address->is_got_ip6=0;
++
++				memset(p_address->my_ip_address.name[ip_4],0,DYNDNS_MY_IP_ADDRESS_LENGTH);
++				memset(p_address->my_ip_address.name[ip_6],0,DYNDNS_MY_IP_ADDRESS_LENGTH);	
++				
++				update_private_IPV6_address(p_address,p_self);
++				
++				rc=RC_OK;
++			}	
++#if 0
++			else if ((is_global_update_pending && p_address->is_updated) || (p_address->dependents_fatal==p_address->dependents))
++			{
+ 				rc=RC_OK;
++			}	
+ 			else {
++				
+ 				/*reset*/
+ 				if (p_address->is_updated) {
+ 
+@@ -2328,9 +2461,23 @@ static RC_TYPE fetch_addresses(gen_list i_face,DYN_DNS_CLIENT *p_self)
+ 
+ 				/*only return not RC_OK if don't fetch any at all*/
+ 				if (p_address->is_got_ip4 || p_address->is_got_ip6)
+-
+ 					rc=RC_OK;
+ 			}
++#else
++			else 
++			{
++				p_address->is_updated=0;
++				p_address->is_got_ip4=0;
++				p_address->is_got_ip6=0;
++
++				memset(p_address->my_ip_address.name[ip_4],0,DYNDNS_MY_IP_ADDRESS_LENGTH);
++				memset(p_address->my_ip_address.name[ip_6],0,DYNDNS_MY_IP_ADDRESS_LENGTH);	
++				
++				update_private_IPV4_address(p_address,p_self);
++				
++				rc=RC_OK;
++			}
++#endif 
+ 
+ 			is_global_in_proc_update_pending=(is_global_in_proc_update_pending || !(p_address->is_updated));
+ 
+@@ -2347,6 +2494,8 @@ static void dyn_dns_update_ip(DYN_DNS_CLIENT *p_dyndns,int *success_count,int *c
+ {
+ 	int	i;
+ 	RC_TYPE	rc;
++	
++	
+ 
+ 	for (i=0;i<p_dyndns->srv_cnt;i++) {
+ 
+@@ -2402,17 +2551,18 @@ int dyn_dns_main(DYN_DNS_CLIENT *p_dyndns, int argc, char* argv[])
+ 	void *p_ras_thread_data=NULL;
+ #endif
+ 
++	
+ 	rc=init_update_loop(p_dyndns,argc,argv,&p_ras_thread_data,&init_flag);
+-
+-        events_register_client(dyndns_event,p_dyndns,NULL);
+-        events_start_loop_thread();
++    events_register_client(dyndns_event,p_dyndns,NULL);
++    events_start_loop_thread();
++	
++	
+ 
+ 	if (p_dyndns->abort)
+-
+ 		return rc;
+ 
+ 	if (rc==RC_OK) /*init all okay?*/
+-
++	{
+ 		do
+ 		{
+ 			/*state across multiple server updates*/
+@@ -2422,7 +2572,6 @@ int dyn_dns_main(DYN_DNS_CLIENT *p_dyndns, int argc, char* argv[])
+ 			success_count=0;
+ 
+ 			if (RC_OK==(rc=fetch_addresses(p_dyndns->address_list,p_dyndns)))
+-
+ 				dyn_dns_update_ip(p_dyndns,&success_count,&current_iteration,&bad_config_count);
+ 
+ 			is_global_update_pending=is_global_in_proc_update_pending;
+@@ -2439,12 +2588,10 @@ int dyn_dns_main(DYN_DNS_CLIENT *p_dyndns, int argc, char* argv[])
+ 
+ 				increment_iterations(p_dyndns);
+ #ifdef USE_SNDFILE
+-
+ #ifndef USE_THREADS
+ 
+ 			alert_if_offline(p_dyndns,p_ras_thread_data);
+ #endif
+-
+ #endif
+ 
+ 			if (p_dyndns->cmd==CMD_STOP) {
+@@ -2481,7 +2628,7 @@ int dyn_dns_main(DYN_DNS_CLIENT *p_dyndns, int argc, char* argv[])
+ 
+ 		}
+ 		while(1);
+-
++	}
+ #ifdef USE_THREADS
+ 
+ 	destroy_timer(&update_timer);
+@@ -2538,6 +2685,7 @@ static RC_TYPE dyn_dns_set_comm_src_params(HTTP_CLIENT *dest,char *if_name,IPV6_
+ static RC_TYPE dyn_dns_set_online_check_params(HTTP_CLIENT *dest,DYN_DNS_CLIENT *p_self)
+ {
+ 
++
+ 	if (p_self->info[0].proxy_server_name.name) {
+ 
+ 		dyn_dns_set_proxy_dest(dest,p_self->info[0].proxy_server_name.name,p_self->info[0].proxy_server_name.port);
+@@ -2634,8 +2782,10 @@ static RC_TYPE test_connect(DYN_DNS_CLIENT *p_self)
+ 
+ 	rc=http_client_construct(http_to_ip_server);
+ 
++
+ 	dyn_dns_set_online_check_params(http_to_ip_server,p_self);
+ 
++
+ #ifndef USE_THREADS
+ 	rc=http_client_init_and_connect(http_to_ip_server);
+ #else
+@@ -3122,6 +3272,9 @@ static RC_TYPE get_default_config_data(DYN_DNS_CLIENT *p_self)
+ 	char	*rel_path;
+ 	do
+ 	{
++		p_self->is_private_ipv6_addr = FALSE;
++		memset(p_self->private_ipv6_addr , 0 , sizeof(p_self->private_ipv6_addr));
++		
+ 		rel_path=default_relative_path(&rel_path);
+ 		rel_len=strlen(rel_path);
+ 		delim_len=strlen(DIR_DELIM_STR);
+@@ -3129,6 +3282,7 @@ static RC_TYPE get_default_config_data(DYN_DNS_CLIENT *p_self)
+ 		/*set up default ddns system*/
+ 		p_self->info[0].p_dns_system = get_dns_system_by_id(DYNDNS_MY_DNS_SYSTEM);
+ 		p_self->info[0].is_auto_dual_list=p_self->info[0].p_dns_system->is_auto_dual_list;
++		p_self->info[0].is_defaults_config = TRUE;
+ 		p_self->srv_cnt++;
+ 
+ 		if (p_self->info[0].p_dns_system == NULL)
+@@ -3154,22 +3308,12 @@ static RC_TYPE get_default_config_data(DYN_DNS_CLIENT *p_self)
+ 		prefix_len=strlen(DYNDNS_DEFAULT_CACHE_PREFIX);
+ 		ip_len=strlen(DYNDNS_DEFAULT_IP_FILE)+1;
+ 		time_len=strlen(DYNDNS_DEFAULT_TIME_FILE)+1;
+-#ifndef _WIN32
++
+ 		p_self->ip_cache=safe_malloc(prefix_len+ip_len);
+ 		sprintf(p_self->ip_cache, "%s%s", DYNDNS_DEFAULT_CACHE_PREFIX, DYNDNS_DEFAULT_IP_FILE);
+ 
+ 		p_self->time_cache=safe_malloc(prefix_len+time_len);
+ 		sprintf(p_self->time_cache, "%s%s", DYNDNS_DEFAULT_CACHE_PREFIX, DYNDNS_DEFAULT_TIME_FILE);
+-#else
+-		ip_len+=(rel_len+delim_len);
+-		time_len+=(rel_len+delim_len);
+-
+-		p_self->ip_cache=safe_malloc(ip_len);
+-		p_self->time_cache=safe_malloc(time_len);
+-
+-		sprintf(p_self->ip_cache, "%s%s%s", rel_path, DIR_DELIM_STR, DYNDNS_DEFAULT_IP_FILE);
+-		sprintf(p_self->time_cache, "%s%s%s", rel_path, DIR_DELIM_STR, DYNDNS_DEFAULT_TIME_FILE);
+-#endif
+ 		/*update period*/
+ 		p_self->sleep_sec = DYNDNS_DEFAULT_SLEEP;
+ 
+@@ -3406,6 +3550,7 @@ static RC_TYPE init_update_loop(DYN_DNS_CLIENT *p_dyndns,int argc, char* argv[],
+ 	RC_TYPE	rc = RC_OK;
+ 	RC_TYPE	rc_cmd_line = RC_OK;
+ 
++
+ #ifndef _WIN32
+ 
+ #ifdef USE_THREADS
+diff --git a/src/dyndns.h b/src/dyndns.h
+index 944e3df..9b68ac2 100644
+--- a/src/dyndns.h
++++ b/src/dyndns.h
+@@ -75,7 +75,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ #define	DYNDNS_EXTRA_VERSION
+ 
+ #define DYNDNS_VERSION_STRING	"02.28.10" DYNDNS_VERSION_SND DYNDNS_VERSION_THD DYNDNS_EXTRA_VERSION
+-#define DYNDNS_AGENT_NAME	"inadyn-mt/" DYNDNS_VERSION_STRING
++
++#ifdef PRODUCT_DIR878
++#define DYNDNS_AGENT_NAME	"D-Link DIR-878"
++#else if defined(PRODUCT_DIR882)
++#define DYNDNS_AGENT_NAME	"D-Link DIR-882"
++#endif
++
+ #define DYNDNS_EMAIL_ADDR	"bhoover@wecs.com"
+ 
+ #define USER_DEFINED_SERVER	"custom@http_svr_basic_auth"
+@@ -89,6 +95,7 @@ typedef enum
+     FREEDNS_AFRAID_ORG_DEFAULT,
+     ZONE_EDIT_DEFAULT,
+     CUSTOM_HTTP_BASIC_AUTH,
++    DYNDNS_DLINK,
+     NOIP_DEFAULT,
+     EASYDNS_DEFAULT,
+     DYNDNS_3322_DYNAMIC,
+@@ -121,7 +128,7 @@ typedef enum
+ #define DYNDNS_MY_PASSWD			"test"
+ #define DYNDNS_MY_IP_SERVER			"checkip.dyndns.org"
+ #define DYNDNS_MY_IP_SERVER_URL			"/"
+-#define DYNDNS_MY_ONLINE_CHECK			"google.com"
++#define DYNDNS_MY_ONLINE_CHECK			"wrpd.dlink.com"
+ #define DYNDNS_MY_ONLINE_CHECK_URL		"/"
+ 
+ #define DYNDNS_MY_DNS_SERVER			"members.dyndns.org"
+@@ -150,11 +157,13 @@ typedef enum
+ #define GENERIC_DNS_IP_SERVER_NAME	DYNDNS_MY_IP_SERVER
+ #define DYNDNS_MY_DNS_SYSTEM		DYNDNS_DEFAULT
+ 
++#define MAX_IP6_LEN         46
++
+ #define DYNDNS_HTTP_REQUEST_FORMAT \
+ 	"GET %s\r\n" \
+ 	"HTTP/1.0\r\n" \
+-	"Host: %s\r\n" \
+-	"User-Agent: " DYNDNS_AGENT_NAME " " DYNDNS_EMAIL_ADDR "\r\n\r\n"
++	"User-Agent: %s\r\n" \
++	"Host: %s\r\n\r\n"
+ 
+ /* Conversation with the IP server */
+ #define DYNDNS_GET_MY_IP_HTTP_REQUEST  \
+@@ -162,6 +171,7 @@ typedef enum
+ 
+ /* dyndns.org specific update address format */
+ /* 3322.org has the same parameters ...*/
++#if 0
+ #define DYNDNS_GET_MY_IP_HTTP_REQUEST_FORMAT \
+ 	"GET %s" \
+ 	"system=%s&" \
+@@ -175,7 +185,21 @@ typedef enum
+ 	"Host: %s\r\n" \
+ 	"Authorization: Basic %s\r\n" \
+ 	"User-Agent: "DYNDNS_AGENT_NAME " " DYNDNS_EMAIL_ADDR"\r\n\r\n"
++#else
++
++#define DYNDNS_GET_MY_IP_HTTP_REQUEST_FORMAT \
++	"GET %s" \
++	"hostname=%s&" \
++	"myip=%s&" \
++	"wildcard=NOCHG&" \
++	"mx=NOCHG&" \
++	"backmx=NOCHG  " \
++	"HTTP/1.0\r\n" \
++	"User-Agent: %s\r\n" \
++	"Host: %s\r\n" \
++	"Authorization: Basic %s\r\n\r\n"
+ 
++#endif
+ /*freedns.afraid.org specific update request format */
+ #define FREEDNS_UPDATE_MY_IP_REQUEST_FORMAT \
+ 	"GET %s" \
+@@ -211,12 +235,23 @@ typedef enum
+         "Host: %s\r\n" \
+         "User-Agent: "DYNDNS_AGENT_NAME " " DYNDNS_EMAIL_ADDR"\r\n\r\n"
+ 
+-#define GENERIC_NOIP_AUTH_MY_IP_REQUEST_FORMAT \
+-    "GET %s%s&myip=%s " \
+-	 "HTTP/1.0\r\n" \
+-	"Authorization: Basic %s\r\n" \
+-	"Host: %s\r\n" \
+-	"User-Agent: "DYNDNS_AGENT_NAME " " DYNDNS_EMAIL_ADDR"\r\n\r\n"
++
++#define GENERIC_NOIP_AUTH_MY_IP_REQUEST_FORMAT_NEW \   
++	"GET %s%s " \	 
++	"HTTP/1.0\r\n" \	
++	"Authorization: Basic %s\r\n" \	
++	"Host: %s\r\n" \	
++	"User-Agent: "DYNDNS_AGENT_NAME " " DYNDNS_EMAIL_ADDR"\r\n\r\n"	
++
++/* dlinkddns.com specific update address format */
++#define DLINKDDNS_GET_MY_IP_HTTP_REQUEST_FORMAT_NEW \		
++	"GET %s" \		
++	"hostname=%s&" \		
++	"wildcard=%s " \		
++	"HTTP/1.0\r\n" \		
++	"Authorization: Basic %s\r\n" \		
++	"User-Agent: "DYNDNS_AGENT_NAME " " DYNDNS_EMAIL_ADDR"\r\n\r\n"\		
++	"Host: %s\r\n" 
+ 
+ /** dont ask me why easydns is so picky
+ */
+@@ -331,7 +366,7 @@ typedef enum
+ #define DYNDNS_DEFAULT_ITERATIONS		0	/*forever*/
+ #define DYNDNS_DEFAULT_NET_RETRIES		0
+ #define DYNDNS_DEFAULT_RETRY_INTERVAL		1000
+-#define DYNDNS_DEFAULT_RETRY_PENDING_INTERVAL	300
++#define DYNDNS_DEFAULT_RETRY_PENDING_INTERVAL	10
+ #define DYNDNS_HTTP_RESPONSE_BUFFER_SIZE	(4524)	/*Bytes*/
+ #define DYNDNS_HTTP_REQUEST_BUFFER_SIZE		(2524)	/*Bytes*/
+ #define DYNDNS_MAX_ALIAS_NUMBER			20	/*maximum number of aliases that can be maintained*/
+@@ -542,6 +577,7 @@ typedef struct DYNDNS_INFO_TYPE
+ 	IPV6_PRIV_EXT		ipv6_priv_ext;
+ 	char			*if_name;
+ 
++	BOOL			is_defaults_config;
+ } DYNDNS_INFO_TYPE;
+ 
+ typedef struct
+@@ -642,6 +678,10 @@ typedef struct DYN_DNS_CLIENT
+ 	DBG_TYPE	dbg;
+ 
+ 	int		is_improbability;
++
++	
++	BOOL			is_private_ipv6_addr;
++	char			private_ipv6_addr[MAX_IP6_LEN];
+ } DYN_DNS_CLIENT;
+ 
+ /*for mapping servers_additional.cfg variable identifiers
+diff --git a/src/http_client.h b/src/http_client.h
+index 8a8b6be..dd55de8 100644
+--- a/src/http_client.h
++++ b/src/http_client.h
+@@ -41,10 +41,10 @@ typedef struct
+ 
+ typedef struct
+ {
+-	char	*p_req;
++	char	*p_req;/*get信息暂时保存在这里面*/
+ 	int	req_len;
+ 
+-	char	*p_rsp;
++	char	*p_rsp;/*待存储返回的信息*/
+ 	int	max_rsp_len;
+ 	int	rsp_len;
+ 
+diff --git a/src/inadyn_cmd.c b/src/inadyn_cmd.c
+index 502d8e4..117b257 100644
+--- a/src/inadyn_cmd.c
++++ b/src/inadyn_cmd.c
+@@ -108,6 +108,7 @@ static RC_TYPE get_retry_pending_interval_handler(CMD_DATA *p_cmd, int current_n
+ static RC_TYPE get_retry_pending_off_handler(CMD_DATA *p_cmd, int current_nr, void *p_context);
+ static RC_TYPE get_lang_file_handler(CMD_DATA *p_cmd, int current_nr, void *p_context);
+ static RC_TYPE get_addr_pref_handler(CMD_DATA *p_cmd, int current_nr, void *p_context);
++static RC_TYPE get_private_ipv6_addr(CMD_DATA *p_cmd, int current_nr, void *p_context);
+ static RC_TYPE get_improb_handler(CMD_DATA *p_cmd, int current_nr, void *p_context);
+ static RC_TYPE get_if_name_handler(CMD_DATA *p_cmd, int current_nr, void *p_context);
+ static RC_TYPE get_ip_param_handler(CMD_DATA *p_cmd, int current_nr, void *p_context);
+@@ -173,6 +174,8 @@ static CMD_DESCRIPTION_TYPE cmd_options_table[] =
+         {"--debug",     1,	{get_debug_level_handler, NULL,0}, "<#> - debug level 0..7; higher number, more log debug messages.",1},
+         {"-d",          1,	{get_debug_level_handler, NULL,0}, "<#> - debug level 0..7; higher number, more log debug messages.\n",1},
+ 
++		{"--set_private_ipv6",	1,	{get_private_ipv6_addr, NULL,0}, "<#> - Your set private IPV6 addr. It's update to DDNS service.\n",1},
++
+         /*
+         for help display only -- service_main takes care of these handlers
+ 
+@@ -459,6 +462,9 @@ static CMD_DESCRIPTION_TYPE cmd_options_table[] =
+ 	"\n\t\t\tEnumerate network interfaces.\n",1},
+ 
+ 	{"--improb",			0,	{get_improb_handler, NULL,0}, "????",0},
++	
++	
++	
+ 
+         {NULL,				0,	{0,NULL,0},"",0}
+ };
+@@ -2110,7 +2116,12 @@ static RC_TYPE get_dyndns_system_handler(CMD_DATA *p_cmd, int current_nr, void *
+ 			p_self->srv_cnt++;
+ 		}
+ 		else {
+-			if (!(-1==(ndx=dns_system_index_of(p_dns_system->p_key,p_self))))
++			if(p_self->srv_cnt == 1 && p_self->info[0].is_defaults_config == TRUE)
++			{
++				server_index = 0 ;
++				p_self->info[0].is_defaults_config == FALSE;
++			}
++			else if (!(-1==(ndx=dns_system_index_of(p_dns_system->p_key,p_self))))
+ 
+ 				server_index=ndx;
+ 			else {
+@@ -2150,6 +2161,7 @@ static RC_TYPE get_dyndns_system_handler(CMD_DATA *p_cmd, int current_nr, void *
+ 			free(p_key);
+ 		}
+ 	}
++	
+ 
+ 	p_self->info[server_index].p_dns_system = p_dns_system;
+ 
+@@ -2745,6 +2757,24 @@ static RC_TYPE get_addr_pref_handler(CMD_DATA *p_cmd, int current_nr, void *p_co
+ 	return do_set_priv_ext(p_cmd->argv[current_nr],&p_self->info[server_index].ipv6_priv_ext);
+ }
+ 
++static RC_TYPE get_private_ipv6_addr(CMD_DATA *p_cmd, int current_nr, void *p_context)
++{
++	DYN_DNS_CLIENT	*p_self = (DYN_DNS_CLIENT *) p_context;
++	
++	if (p_self == NULL)
++	{
++		return RC_INVALID_POINTER;
++	}
++
++	/*user*/
++	p_self->is_private_ipv6_addr = TRUE	;
++
++	strcpy(p_self->private_ipv6_addr, p_cmd->argv[current_nr]);
++
++	return RC_OK;
++}
++
++
+ static RC_TYPE get_improb_handler(CMD_DATA *p_cmd, int current_nr, void *p_context)
+ {
+ 	DYN_DNS_CLIENT	*p_self=p_context;
+diff --git a/src/ip.c b/src/ip.c
+index 2c5876d..c2c4def 100644
+--- a/src/ip.c
++++ b/src/ip.c
+@@ -998,15 +998,21 @@ RC_TYPE ip_initialize(IP_SOCKET *p_self)
+ 		memset(&hints, 0,sizeof(struct addrinfo));
+ 
+ 		if (!(p_self->is_ipv4 || p_self->is_ipv6) || (p_self->is_ipv4 && p_self->is_ipv6))
+-
+-			hints.ai_family=AF_UNSPEC;
++		{
++			//hints.ai_family=AF_UNSPEC;
++			hints.ai_family=AF_INET;
++		}
+ 		else
++		{
+ 			if (p_self->is_ipv4)
+-
++			{
+ 				hints.ai_family=AF_INET;
++			}
+ 			else
++			{
+ 				hints.ai_family=AF_INET6;
+-
++			}
++		}
+ 		hints.ai_socktype=SOCK_STREAM;
+ 		hints.ai_protocol=IPPROTO_TCP;
+ 		hints.ai_flags=AI_CANONNAME;
+diff --git a/src/os_unix.c b/src/os_unix.c
+index 5d7a102..26af95d 100644
+--- a/src/os_unix.c
++++ b/src/os_unix.c
+@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
+ 
+ RC_TYPE os_syslog_open(const char *p_prg_name)
+ {
+-	openlog(p_prg_name, LOG_PID, LOG_USER);
++	openlog(LOG_DDNS, 0 , LOG_USER);
+ 	return RC_OK;
+ }
+ 

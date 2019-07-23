@@ -1,0 +1,93 @@
+#!/bin/sh
+
+# arc_restore_defaults [1|2|3]
+# 1: Part 1
+# 2: Part 2
+# 3: Part 3
+# *: All cfg items
+
+# Variables
+PART=x$1
+DEFAULT_FILE=/etc/config/glbcfg.dft
+PART1_KEY_LIST_FILE=/etc/config/glbcfg.part1
+PART2_KEY_LIST_FILE=/etc/config/glbcfg.part2
+PART3_KEY_LIST_FILE=/etc/config/glbcfg.part3
+CONFIG_TMP_FILE=/tmp/.glbcfg_tmp
+CONFIG_TMP_DFT_FILE=/tmp/.glbcfg_dft_tmp
+
+echo "into arc_restore_defaults"
+
+# Functions
+default_led_begin() {
+	/sbin/arc_led_all_blink_on.sh
+	#arc_led all 3
+}
+
+default_led_end() {
+	sleep 3
+	# /sbin/arc_led_all_blink_off.sh
+}
+
+default_led_begin
+
+rm -f $CONFIG_TMP_FILE
+rm -f $CONFIG_TMP_DFT_FILE
+case $PART in
+	x1)
+		echo "Default part 1" > /dev/console
+		mngcli backup $CONFIG_TMP_FILE
+		arc_cpcfg $DEFAULT_FILE $PART1_KEY_LIST_FILE $CONFIG_TMP_FILE
+		mngcli restore $CONFIG_TMP_FILE
+		;;
+	x2)
+		echo "Default part 2" > /dev/console
+		mngcli backup $CONFIG_TMP_FILE
+		arc_cpcfg $DEFAULT_FILE $PART2_KEY_LIST_FILE $CONFIG_TMP_FILE
+		mngcli restore $CONFIG_TMP_FILE
+		# Terry 20150121, over write default ACS URL for test environment.
+		overwrite_default_acs_url
+		;;
+	x3)
+		echo "Default part 3" > /dev/console
+		mngcli backup $CONFIG_TMP_FILE
+		cp $DEFAULT_FILE $CONFIG_TMP_DFT_FILE
+		arc_cpcfg $CONFIG_TMP_FILE $PART3_KEY_LIST_FILE $CONFIG_TMP_DFT_FILE
+		mngcli restore $CONFIG_TMP_DFT_FILE
+		;;
+	*)
+		killall -9 tr69
+		echo "Default all settings" > /dev/console
+		sleep 1
+		mngcli restore /etc/config/glbcfg.dft
+		arccfg default
+		arccfg commit
+		;;
+esac
+rm -f $CONFIG_TMP_FILE
+rm -f $CONFIG_TMP_DFT_FILE
+rm -rf /etc/reach/*
+rm -rf /opt/lib/bluetooth/*
+rm -rf /mydlink/fota_*
+rm -rf /mydlink/mcafee
+
+#Reset SHGW to factory default.
+/bin/McAfee/shgw reset
+
+#notify mydlink agent
+id=`pidof da_adaptor`
+if [ ! -z $id ]; then 
+	kill -USR2 $id
+fi
+
+#Remove date of /mydlink/config/.
+rm -rf /mydlink/config/*
+
+#Recover the default certificate
+CERT=/overlay/usr/sbin/cert.pem
+KEY=/overlay/usr/sbin/key.pem
+rm -f $KEY
+rm -f $CERT
+
+default_led_end
+
+echo "Default all setting done!!"

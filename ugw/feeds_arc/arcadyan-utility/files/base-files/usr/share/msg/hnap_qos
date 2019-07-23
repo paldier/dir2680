@@ -1,0 +1,3 @@
+#action for QOS saving
+arca.dbus.qos:CMD_RESTART
+

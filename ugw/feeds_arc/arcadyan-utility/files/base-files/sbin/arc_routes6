@@ -1,0 +1,19 @@
+#!/bin/sh
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+	
+		;;
+
+	"restart" | "CMD_RESTART")
+		/usr/sbin/ip -6 route flush table 200
+		;;
+
+	"stop" | "CMD_STOP")
+		/usr/sbin/ip -6 route flush table 200
+		;;
+
+	*)
+		echo $0 'routes6          - setup ipv6 route'
+		;;
+esac

@@ -1,0 +1,1 @@
+arca.dbus.tr69:CMD_RESTART $(1)

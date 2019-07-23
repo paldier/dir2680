@@ -1,0 +1,1 @@
+arca.dbus.voip:CMD_DECT_SETUP TEL_MGR_SendNotify_NEW $(1)

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+		lan_ifname=`mng_cli get ARC_LAN_0_Ifname`
+		dnsmasq -i $lan_ifname -c 0 -u root 
+		;;
+
+	"start" | "CMD_START")
+		lan_ifname=`mng_cli get ARC_LAN_0_Ifname`
+		dnsmasq -i $lan_ifname -c 0 -u root 
+		;;
+
+	"stop" | "CMD_STOP")
+		killall dnsmasq
+		;;
+
+	"restart" | "CMD_RESTART")
+		killall dnsmasq
+		lan_ifname=`mng_cli get ARC_LAN_0_Ifname`
+		dnsmasq -i $lan_ifname -c 0 -u root 
+		;;
+
+	*)
+		echo $0 'boot          - setup and start DNS relay service'
+		echo $0 'start         - setup and start DNS relay service'
+		echo $0 'stop          - stop and delete DNS relay service'
+		echo $0 'restart       - restart DNS relay service'
+		;;
+esac

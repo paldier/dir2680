@@ -1,0 +1,22 @@
+#action for release memory
+#arca.dbus.misc:release_memory CMD_SYNC
+#arca.dbus.twonkyserver:CMD_STOP
+arca.dbus.usbapp:CMD_DLNA_STOP
+arca.dbus.crond:CMD_STOP
+arca.dbus.misc:airupgrade CMD_STOP
+#arca.dbus.igmpproxy:CMD_STOP
+arca.dbus.netbios:CMD_STOP
+arca.dbus.mdns:CMD_STOP
+arca.dbus.upnp:CMD_STOP
+#arca.dbus.dhcp6c:CMD_STOP
+#arca.dbus.dhcpc:CMD_STOP
+arca.dbus.dhcpd:CMD_STOP
+arca.dbus.zebra:CMD_STOP
+#arca.dbus.vsftpd:CMD_STOP
+arca.dbus.usbapp:CMD_FTP_STOP
+#arca.dbus.samba:CMD_STOP
+arca.dbus.usbapp:CMD_SAMBA_STOP
+#arca.dbus.misc:storage remove all
+arca.dbus.archotplugd:CMD_UNMOUNTALL $(1)
+arca.dbus.misc:modules CMD_STOP
+

@@ -1,0 +1,65 @@
+diff --git a/drivers/net/ppp/ppp_generic.c b/drivers/net/ppp/ppp_generic.c
+--- a/drivers/net/ppp/ppp_generic.c
++++ b/drivers/net/ppp/ppp_generic.c
+@@ -245,6 +245,10 @@
+ #define seq_before(a, b)	((s32)((a) - (b)) < 0)
+ #define seq_after(a, b)		((s32)((a) - (b)) > 0)
+ 
++#define IP_PROTO(skb)   (skb)->data[11]
++#define SRC_PORT(skb)   (((skb)->data[22] << 8) + (skb)->data[23])
++#define DST_PORT(skb)   (((skb)->data[24] << 8) + (skb)->data[25])
++#define MARK_LAN2WAN    0x100
+ /* Prototypes. */
+ static int ppp_unattached_ioctl(struct net *net, struct ppp_file *pf,
+ 			struct file *file, unsigned int cmd, unsigned long arg);
+@@ -1174,6 +1178,7 @@
+ 	struct sk_buff *new_skb;
+ 	int len;
+ 	unsigned char *cp;
++	int skip = 0;
+ 
+ 	if (proto < 0x8000) {
+ #ifdef CONFIG_PPP_FILTER
+@@ -1193,8 +1198,32 @@
+ 		/* if this packet passes the active filter, record the time */
+ 		if (!(ppp->active_filter &&
+ 		      sk_run_filter(skb, ppp->active_filter) == 0))
+-			ppp->last_xmit = jiffies;
++		{
++			/* Reset idle time, when receive a lan to wan packet*/
++			if(skb->mark == MARK_LAN2WAN)
++			{
++				if(DST_PORT(skb) == 137 || DST_PORT(skb) == 138 || DST_PORT(skb) == 139 || DST_PORT(skb) == 445)
++				{
++					skip = 1;
++				}
++				else
++				{
++					ppp->last_xmit = jiffies;
++				}
++			}
++			else
++			{
++				if(IP_PROTO(skb) != 1) //don't ignore ping packet!!
++				{
++					if(strcmp(current->comm, "dnsmasq") || IP_PROTO(skb) != 17 || DST_PORT(skb) != 53)
++					{
++						skip = 1;
++					}
++				}
++			}
++		}
+ 		skb_pull(skb, 2);
++
+ #else
+ 		/* for data packets, record the time */
+ 		ppp->last_xmit = jiffies;
+@@ -1275,7 +1307,7 @@
+ 	 * If we are waiting for traffic (demand dialling),
+ 	 * queue it up for pppd to receive.
+ 	 */
+-	if (ppp->flags & SC_LOOP_TRAFFIC) {
++	if ((ppp->flags & SC_LOOP_TRAFFIC) && (!skip)) {
+ 		if (ppp->file.rq.qlen > PPP_MAX_RQLEN)
+ 			goto drop;
+ 		skb_queue_tail(&ppp->file.rq, skb);

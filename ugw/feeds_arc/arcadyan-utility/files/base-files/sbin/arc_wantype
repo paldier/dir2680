@@ -1,0 +1,44 @@
+#!/bin/sh
+
+#lan_type? always ethernet
+wan_type=`mngcli get ARC_WAN_Type`
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+
+		echo "arc_wantype" > /dev/console
+		#0 ADSL
+		#1 Ethernet
+		#2 VDSL
+		#3 LTE/3G
+		if [ "$wan_type" == "3" ] ; then
+			##FIXME: need to rename
+			mng_cli set ARC_WAN_0_BASE_Ifname="lte0"
+			mng_cli set ARC_WAN_1_BASE_Ifname="lte1"
+			mng_cli set ARC_WAN_2_BASE_Ifname="lte2"
+		elif [ "$wan_type" == "1" ] ; then
+			mng_cli set ARC_WAN_0_BASE_Ifname="eth1"
+			mng_cli set ARC_WAN_1_BASE_Ifname="eth1"
+		elif [ "$wan_type" == "0" ] ; then
+			mng_cli set ARC_WAN_0_BASE_Ifname="nas0"
+			mng_cli set ARC_WAN_1_BASE_Ifname="nas1"
+		elif [ "$wan_type" == "2" ] ; then
+			mng_cli set ARC_WAN_0_BASE_Ifname="ptm0"
+			mng_cli set ARC_WAN_1_BASE_Ifname="ptm0"
+		fi
+		mng_cli commit
+		wan_base_ifname0=`mngcli get ARC_WAN_0_BASE_Ifname`
+		wan_base_ifname1=`mngcli get ARC_WAN_1_BASE_Ifname`
+		ppacmd addwan -i $wan_base_ifname0
+		ppacmd addwan -i $wan_base_ifname1
+		;;
+
+	"stop" | "CMD_STOP")
+		;;
+
+	*)
+		echo $0 'boot          - setup WAN interface by type'
+		echo $0 'start         - setup WAN interface by type'
+		echo $0 'stop          - do nothing'
+		;;
+esac

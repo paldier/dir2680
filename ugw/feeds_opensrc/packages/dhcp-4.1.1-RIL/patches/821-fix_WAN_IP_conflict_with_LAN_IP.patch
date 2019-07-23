@@ -1,0 +1,144 @@
+--- a/client/dhclient.c
++++ b/client/dhclient.c
+@@ -86,7 +86,8 @@
+ char *path_dhclient_script = path_dhclient_script_array;
+ 
+ char lan_interface[12] = "br0";
+-char wan_interface[12] = "vlan2";
++char guest_interface[12] = "br1";
++char wan_interface[12] = "eth1";
+ 
+ int dhcp_max_agent_option_packet_length = 0;
+ 
+@@ -1938,6 +1939,9 @@
+ 	const char *name = packet -> packet_type ? "DHCPOFFER" : "BOOTREPLY";
+ 	char obuf [1024];
+ 	struct timeval tv;
++	struct option_cache *oc = NULL;
++	struct data_string data;
++	unsigned long get_netmask = 0;
+ 
+ #ifdef DEBUG_PACKET
+ 	dump_packet (packet);
+@@ -1972,8 +1976,8 @@
+ 	if (req != NULL) {
+ 		for (i = 0 ; req[i] != NULL ; i++) {
+ 			if ((req[i]->universe == &dhcp_universe) &&
+-			    !lookup_option(&dhcp_universe, packet->options,
+-					   req[i]->code)) {
++			    !(oc = lookup_option(&dhcp_universe, packet->options,
++					   req[i]->code))) {
+ 				struct option *option = NULL;
+ 				unsigned code = req[i]->code;
+ 
+@@ -1992,6 +1996,19 @@
+ 
+ 				return;
+ 			}
++			else
++			{
++				if(req[i]->code == DHO_SUBNET_MASK)
++				{
++					memset(&data, 0, sizeof(struct data_string));
++					if(oc && evaluate_option_cache(&data, (struct packet *)packet,
++						(struct lease *)0, (struct client_state *)0, (struct option_state *)0,
++						(struct option_state *)packet->options, &global_scope, oc, MDL))
++					{
++						memcpy(&get_netmask, data.data, data.len);
++					}
++				}
++			}
+ 		}
+ 	}
+ 
+@@ -2010,7 +2027,9 @@
+ 		struct ifreq ifr;
+ 		struct sockaddr_in *sin;
+ 		unsigned long ipaddr = 0, netmask = 0;
++		unsigned long guest_ipaddr = 0, guest_netmask = 0;
+ 		int ifidx;
++		int cnt = 0, j = 0;
+ 
+ 		fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP));
+ 		if(fd < 0)
+@@ -2045,21 +2064,69 @@
+ 				/*cprintf("Get SIOCGIFNETMASK failed!\n");*/
+ 				/*close(fd);*/
+ 			}
++
++			memset(&ifr, 0, sizeof(struct ifreq));
++			ifr.ifr_addr.sa_family = AF_INET;
++			strcpy(ifr.ifr_name, guest_interface);
++
++			if(ioctl(fd, SIOCGIFADDR, &ifr) == 0)
++			{
++				sin = (struct sockaddr_in *)&ifr.ifr_addr;
++				guest_ipaddr = sin->sin_addr.s_addr;
++			}
++			if(ioctl(fd, SIOCGIFNETMASK, &ifr) == 0)
++			{
++				sin = (struct sockaddr_in *)&ifr.ifr_addr;
++				guest_netmask = sin->sin_addr.s_addr;
++			}
+ 			close(fd);
+ 		}
+-		if((ipaddr & netmask) == ((packet -> raw -> yiaddr.s_addr) & netmask))
++
++		for(j= 0; j < 32; j++)  
++		{  
++			if((get_netmask << j) & 0x80000000)  
++				cnt++;
++			else   
++				break;  
++		}
++
++		if((netmask != 0) && ((ipaddr & netmask) == ((packet -> raw -> yiaddr.s_addr) & get_netmask)))
+ 		{
+ 			cprintf("(*DHCP-Client*)Received Invalid IP Address assignment on WAN port, IP is in the same subnet with Local network.\n");
+ 			if(decline_flag == 0)
+ 			{				
+ 				decline_flag = 1;
+ 				script_init (client, "DECLINE", (struct string_list *)0);
++				client_envadd (client, "", "new_ip_address", "%s", inet_ntoa(packet -> raw -> yiaddr));
++				if(cnt <= 16)
++				{
++					client_envadd (client, "", "new_conflict_interface", "%s", "all");
++				}
++				else
++				{
++					client_envadd (client, "", "new_conflict_interface", "%s", "lan");
++				}
+ 				script_go (client);
+ 				//sleep(10);
+ 				cancel_timeout (send_discover, client);
+ 			}
+ 			return;
+ 		}
++		if((guest_netmask != 0) && ((guest_ipaddr & guest_netmask) == ((packet -> raw -> yiaddr.s_addr) & get_netmask)))
++		{
++			cprintf("(*DHCP-Client*)Received Invalid IP Address assignment on WAN port, IP is in the same subnet with guest network.\n");
++			if(decline_flag == 0)
++			{				
++				decline_flag = 1;
++				script_init (client, "DECLINE", (struct string_list *)0);
++				client_envadd (client, "", "new_ip_address", "%s", inet_ntoa(packet -> raw -> yiaddr));
++				client_envadd (client, "", "new_conflict_interface", "%s", "guest");
++				script_go (client);
++				cancel_timeout (send_discover, client);
++			}
++			return;
++		}
++
+ 	}
+ 	/******************end***********************************/
+ 
+@@ -2080,9 +2147,6 @@
+ 	}
+ 
+ 	if (select_server) {
+-                struct option_cache *oc;
+-                struct data_string data;
+-
+                 oc = lookup_option(&dhcp_universe, lease->options,
+                         DHO_DHCP_SERVER_IDENTIFIER);
+                 if (oc && evaluate_option_cache(&data, (struct packet *)0,

@@ -1,0 +1,14 @@
+#start wan connection, param $1 indicate click connect from gui
+arca.dbus.firewall:FWD_FAIL
+arca.dbus.ddns:CMD_STOP
+#arca.dbus.voip:CMD_WAN_START
+arca.dbus.misc:pthrouth CMD_RESTART
+arca.dbus.misc:wan CMD_WAN_START $(1)
+#arca.dbus.dnsmasq:CMD_RESTART
+#arca.dbus.heartbeat:CMD_RESTART $(1)
+arca.dbus.dhcpc:CMD_RESTART $(1)
+arca.dbus.wanppp:CMD_RESTART $(1)
+arca.dbus.dhcp6c:CMD_RESTART $(1)
+arca.dbus.ula:CMD_RESTART
+#For WAN cable issue. Please keep this line at the end.
+#arca.dbus.wanstatus:CMD_SYNC

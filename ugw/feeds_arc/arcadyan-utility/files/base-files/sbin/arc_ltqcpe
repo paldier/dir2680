@@ -1,0 +1,68 @@
+#!/bin/sh
+load_gphy_image() {
+	if [ -f /proc/driver/ifx_gphy/phyfirmware ] && [ "$CONFIG_UBOOT_CONFIG_VR9_GPHY_FW_EMBEDDED" != "1" ]; then
+		cd /tmp
+		# we do in 2 step : read from mtdblock and then skip the header. This is way faster than direct read from mtdblock + skip
+		mtdb=`grep -w gphyfirmware /proc/mtd | cut -d: -f1`
+		dd if=/dev/mtdblock${mtdb:3} of=gphy_image.lzma bs=72c skip=1 2>/dev/null
+		unlzma ./gphy_image.lzma
+		cat gphy_image > /proc/driver/ifx_gphy/phyfirmware
+		rm -f gphy_image*
+	fi
+}
+
+load_devices() {
+	# Make device nodes
+	[ -e /etc/device_table.txt ] && /sbin/makedevs -d /etc/device_table.txt / 2>&-
+}
+
+init_ppa() {
+	mknod /dev/ifx_ppa c 181 0
+	# initialize PPA hooks
+	/sbin/ppacmd init 2> /dev/null
+
+	# enable wan / lan ingress
+	/sbin/ppacmd control --enable-lan --enable-wan 2> /dev/null
+
+	# add interfaces
+	/sbin/ppacmd addlan -i eth0
+	/sbin/ppacmd addlan -i br0
+	/sbin/ppacmd addwan -i eth1
+
+	# set WAN vlan range 3 to 4095
+	/sbin/ppacmd addvlanrange -s 3 -e 0xfff 2> /dev/null
+	#For PPA, the ack/sync/fin packet go through the MIPS and normal data packet go through PP32 firmware.
+	#The order of packets could be broken due to different processing time.
+	#The flag nf_conntrack_tcp_be_liberal gives less restriction on packets and
+	# if the packet is in window it's accepted, do not care about the order
+	echo 1 > /proc/sys/net/netfilter/nf_conntrack_tcp_be_liberal
+
+	### TODO: hw Qos initialize
+	#if PPA is enabled, enable hardware based QoS to be used later
+	#/usr/sbin/status_oper SET "IPQoS_Config" "ppe_ipqos" "1"
+	#. /etc/init.d/ipqos_qprio_cfg.sh
+}
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		#echo "load_gphy_image"
+		#load_gphy_image
+		#move init ppa to PPA.sh boot in arc_modules
+		#echo "init_ppa"
+		#init_ppa
+		echo "load_devices"
+		load_devices
+
+		##### linghong_tan force to drop caches. or tapidemo will crash the kernel ####
+		echo 1 > /proc/sys/vm/drop_caches
+		;;
+
+	"stop" | "CMD_STOP")
+		;;
+
+	*)
+		echo $0 'boot          - ltqcpe target board'
+		echo $0 'start         - ltqcpe target board'
+		echo $0 'stop          - do nothing'
+		;;
+esac

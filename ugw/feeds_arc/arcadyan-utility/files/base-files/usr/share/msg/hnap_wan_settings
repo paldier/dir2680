@@ -1,0 +1,11 @@
+#******** hnap_wan_settings action ********
+arca.dbus.firewall:FWD_FAIL
+arca.dbus.misc:ntpclient CMD_STOP
+arca.dbus.misc:waniface CMD_BOOT
+				wan CMD_WAN_START	
+arca.dbus.dhcpc:CMD_RESTART
+arca.dbus.wanppp:CMD_RESTART
+arca.dbus.dhcpd:CMD_RESTART
+arca.dbus.dnsmasq:CMD_RESTART
+arca.dbus.upnp:CMD_RESTART
+arca.dbus.misc:deviceready 1

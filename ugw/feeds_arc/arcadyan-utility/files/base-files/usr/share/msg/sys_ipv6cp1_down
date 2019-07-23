@@ -1,0 +1,1 @@
+arca.dbus.misc:if6 CMD_STOP $(1)

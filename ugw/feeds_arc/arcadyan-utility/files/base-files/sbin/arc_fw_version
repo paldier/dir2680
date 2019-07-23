@@ -1,0 +1,30 @@
+#!/bin/sh
+
+UPDATE_CHK=$(uboot_env --get --name update_chk)
+ACT_BANK=A
+
+if [ x"$UPDATE_CHK" == "x0" ] || [ x"$UPDATE_CHK" == "x3" ]; then
+	ACT_BANK=A
+else
+	ACT_BANK=B
+fi
+
+if [ ! -d /tmp/rootfsA ]; then
+	mkdir /tmp/rootfsA
+	mkdir /tmp/rootfsB
+	if [ x"$ACT_BANK" == "xA" ]; then
+		mount -o bind / /tmp/rootfsA
+		mount -t ubifs ubi0:rootfsB /tmp/rootfsB
+	else
+		mount -t ubifs ubi0:rootfsA /tmp/rootfsA
+		mount -o bind / /tmp/rootfsB
+	fi
+fi
+
+BANK_A_FW_VER=$(cat /tmp/rootfsA/etc/config/glbcfg.dft | grep ARC_SYS_FWVersion | awk -F= '{print $2}')
+BANK_B_FW_VER=$(cat /tmp/rootfsB/etc/config/glbcfg.dft | grep ARC_SYS_FWVersion | awk -F= '{print $2}')
+
+rm -f /tmp/fw_version
+echo $BANK_A_FW_VER >> /tmp/fw_version
+echo $BANK_B_FW_VER >> /tmp/fw_version
+echo $ACT_BANK >> /tmp/fw_version

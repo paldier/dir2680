@@ -1,0 +1,8 @@
+#action for Factory_Defaults.asp saving
+#this action used by reset button and GUI.
+arca.dbus.voip:CMD_UNREG
+arca.dbus.misc:restore_defaults
+arca.dbus.misc:sleep 2
+# OFF PHY now
+arca.dbus.misc:switch CMD_PHY_OFF
+arca.dbus.misc:reboot

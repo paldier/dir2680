@@ -1,0 +1,7 @@
+## $1 action => add, mod, del, test
+## $2 index => 0-based
+
+params=$@
+echo "[ui_radius_config2] echo params=$@" > /dev/console
+radius-server-config-agent "$@"
+exit 0

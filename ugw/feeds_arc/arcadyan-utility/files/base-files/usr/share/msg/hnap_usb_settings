@@ -1,0 +1,6 @@
+#******** hnap_usb_settings action ********
+arca.dbus.minidlna:CMD_RESTART
+arca.dbus.samba:CMD_RESTART
+arca.dbus.misc:ftp_alg CMD_RESTART
+arca.dbus.vsftpd:CMD_RESTART
+arca.dbus.firewall:CMD_RESTART generic_mod

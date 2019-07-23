@@ -1,0 +1,13 @@
+#/usr/sbin/saveaction "$0 $@"
+
+action=$1
+
+echo "[$0] $@" > /dev/console
+
+iptablesrules-agent-main --$action --FW -t mangac
+
+
+#write config
+mngcli commit
+
+exit 0

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+wan_index=$6
+if [ "$wan_index" = "" ]; then
+	wan_index=0
+fi
+
+mng_cli set ARC_WAN_${wan_index}_PPP_Status="Disconnected" action ""
+
+dft_wan_idx=`mng_cli get ARC_WAN_DefaultRouteIdx`
+if [ "$dft_wan_idx" = "" ]; then
+	dft_wan_idx=0
+fi
+# Supports IPv6 PPPoE Multiple WAN by passing in parameters.
+mng_cli action sys_ipv6cp_down="wan_idx=${wan_index}"

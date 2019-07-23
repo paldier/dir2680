@@ -1,0 +1,4 @@
+arca.dbus.misc:wan CMD_WAN_UPDATE $(1)
+arca.dbus.firewall:CMD_RESTART generic_mod
+arca.dbus.voip:CMD_WAN_DONE $(1)
+

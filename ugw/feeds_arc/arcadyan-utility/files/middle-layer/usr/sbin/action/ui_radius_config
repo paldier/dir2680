@@ -1,0 +1,6 @@
+params=$@
+
+killall samog-util
+/usr/sbin/samog-util -d &
+
+exit 0

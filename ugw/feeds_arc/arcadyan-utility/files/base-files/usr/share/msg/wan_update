@@ -1,0 +1,7 @@
+arca.dbus.misc:wan CMD_WAN_UPDATE $(1)
+arca.dbus.firewall:CMD_RESTART
+arca.dbus.dnsmasq:CMD_RESTART
+arca.dbus.dhcpd:CMD_RESTART
+arca.dbus.upnp:CMD_WAN_UPDATE
+#arca.dbus.voip:CMD_WAN_UPDATE $(1)
+#arca.dbus.sipproxy:CMD_WAN_UPDATE $(1)

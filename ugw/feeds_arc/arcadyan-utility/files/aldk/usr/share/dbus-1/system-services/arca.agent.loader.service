@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=arca.agent.loader
+Exec=/usr/sbin/arca-agent-loader /usr/agents
+User=root

@@ -1,0 +1,23 @@
+#******** system halt ********
+arca.dbus.misc:sysctrl CMD_STOP
+#stop wan
+arca.dbus.dhcpc:CMD_STOP $(1)
+arca.dbus.dhcp6c:CMD_STOP $(1)
+arca.dbus.wanppp:CMD_STOP $(1)
+arca.dbus.v6rd:CMD_STOP
+arca.dbus.misc:routes6 CMD_STOP
+arca.dbus.misc:if6 CMD_STOP $(1)
+arca.dbus.dslite:CMD_STOP
+arca.dbus.ula:CMD_STOP
+arca.dbus.autowandetect:CMD_AUTO_IP6_STOP
+arca.dbus.misc:wan_disconnected
+#stop lan
+arca.dbus.radvd:CMD_STOP
+arca.dbus.dhcp6d:CMD_STOP
+arca.dbus.misc:bridge CMD_STOP
+
+arca.dbus.misc:commit
+arca.dbus.misc:sleep 6
+
+#This command should be the last one, please add other commands before it.
+arca.dbus.mcu:CMD_POWER_OFF

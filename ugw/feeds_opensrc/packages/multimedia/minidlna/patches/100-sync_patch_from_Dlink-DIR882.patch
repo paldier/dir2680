@@ -1,0 +1,514 @@
+diff -ruN a/albumart.c b/albumart.c
+--- a/albumart.c	2014-08-27 05:09:22.000000000 +0800
++++ b/albumart.c	2017-10-18 12:16:50.999780213 +0800
+@@ -351,8 +351,14 @@
+ 	char *album_art = NULL;
+ 	int64_t ret = 0;
+ 
+-	if( (image_size && (album_art = check_embedded_art(path, image_data, image_size))) ||
+-	    (album_art = check_for_album_file(path)) )
++	if(image_size)
++		album_art = check_embedded_art(path, image_data, image_size);
++	else
++		return 0;
++
++	if(album_art)
++//	if( (image_size && (album_art = check_embedded_art(path, image_data, image_size))) ||
++//	    (album_art = check_for_album_file(path)) )
+ 	{
+ 		ret = sql_get_int_field(db, "SELECT ID from ALBUM_ART where PATH = '%q'", album_art);
+ 		if( !ret )
+@@ -361,7 +367,8 @@
+ 				ret = sqlite3_last_insert_rowid(db);
+ 		}
+ 	}
+-	free(album_art);
++	if(album_art != NULL) 
++		free(album_art);
+ 
+ 	return ret;
+ }
+diff -ruN a/inotify.c b/inotify.c
+--- a/inotify.c	2014-08-27 05:09:22.000000000 +0800
++++ b/inotify.c	2017-10-18 12:16:51.003780212 +0800
+@@ -282,9 +282,9 @@
+ inotify_insert_file(char * name, const char * path)
+ {
+ 	int len;
+-	char * last_dir;
+-	char * path_buf;
+-	char * base_name;
++	char * last_dir = NULL;
++	char * path_buf = NULL;
++	char * base_name = NULL;
+ 	char * base_copy;
+ 	char * parent_buf = NULL;
+ 	char * id = NULL;
+@@ -376,7 +376,24 @@
+ 	if( !(path_buf = malloc(len)) ||
+ 	    !(last_dir = malloc(len)) ||
+ 	    !(base_name = malloc(len)) )
++	{
++		if(path_buf != NULL)
++		{
++			free(path_buf);
++			path_buf=NULL;
++		}
++		if(last_dir != NULL)
++		{
++			free(last_dir);
++			last_dir=NULL;
++		}
++		if(base_name != NULL)
++		{
++			free(base_name);
++			base_name=NULL;
++		}
+ 		return -1;
++	}
+ 	base_copy = base_name;
+ 	while( depth )
+ 	{
+@@ -415,9 +432,21 @@
+ 		}
+ 		strcpy(path_buf, path);
+ 	}
+-	free(last_dir);
+-	free(path_buf);
+-	free(base_name);
++	if(path_buf != NULL)
++	{
++		free(path_buf);
++		path_buf=NULL;
++	}
++	if(last_dir != NULL)
++	{
++		free(last_dir);
++		last_dir=NULL;
++	}
++	if(base_name != NULL)
++	{
++		free(base_name);
++		base_name=NULL;
++	}
+ 
+ 	if( !depth )
+ 	{
+@@ -462,7 +491,8 @@
+ 	                            " where d.PATH = '%q' and REF_ID is NULL", dirname(parent_buf));
+ 	if( !id )
+ 		id = sqlite3_mprintf("%s", BROWSEDIR_ID);
+-	insert_directory(name, path, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id));
++	if(-1 == insert_directory(name, path, BROWSEDIR_ID, id+2, get_next_available_id("OBJECTS", id)))
++		return -1;
+ 	sqlite3_free(id);
+ 	free(parent_buf);
+ 
+diff -ruN a/metadata.c b/metadata.c
+--- a/metadata.c	2014-08-27 05:09:22.000000000 +0800
++++ b/metadata.c	2017-10-18 12:16:51.008780212 +0800
+@@ -294,6 +294,13 @@
+ 
+ 	if ( stat(path, &file) != 0 )
+ 		return 0;
++
++	//add by liuchengchi,2017-05-12:忽略文件小文件和超大文件
++	if( file.st_size < 1024 )
++	{ 
++		return 0;
++	}
++
+ 	strip_ext(name);
+ 
+ 	if( ends_with(path, ".mp3") )
+@@ -340,6 +347,7 @@
+ 	else
+ 	{
+ 		DPRINTF(E_WARN, L_METADATA, "Unhandled file extension on %s\n", path);
++		free_metadata(&m, free_flags);
+ 		return 0;
+ 	}
+ 
+@@ -504,6 +512,13 @@
+ 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, "Parsing %s...\n", path);
+ 	if ( stat(path, &file) != 0 )
+ 		return 0;
++
++	//add by liuchengchi,2017-05-12:忽略文件小文件和超大文件
++	if( file.st_size < 1024 )
++	{ 
++		return 0;
++	}
++
+ 	strip_ext(name);
+ 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, " * size: %jd\n", file.st_size);
+ 
+@@ -626,7 +641,8 @@
+ 		m.dlna_pn = strdup("JPEG_SM");
+ 	else if( width <= 1024 && height <= 768 )
+ 		m.dlna_pn = strdup("JPEG_MED");
+-	else if( (width <= 4096 && height <= 4096) || !GETFLAG(DLNA_STRICT_MASK) )
++	//else if( (width <= 4096 && height <= 4096) || !GETFLAG(DLNA_STRICT_MASK) )
++	else if( (width <= 4096 && height <= 4096) )
+ 		m.dlna_pn = strdup("JPEG_LRG");
+ 	xasprintf(&m.resolution, "%dx%d", width, height);
+ 
+@@ -675,6 +691,13 @@
+ 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, "Parsing video %s...\n", name);
+ 	if ( stat(path, &file) != 0 )
+ 		return 0;
++
++	//add by liuchengchi,2017-05-12:忽略文件小文件和超大文件
++	if( file.st_size < 1024 )
++	{ 
++		return 0;
++	}
++
+ 	strip_ext(name);
+ 	//DEBUG DPRINTF(E_DEBUG, L_METADATA, " * size: %jd\n", file.st_size);
+ 
+diff -ruN a/minidlna.c b/minidlna.c
+--- a/minidlna.c	2014-08-27 05:09:22.000000000 +0800
++++ b/minidlna.c	2017-10-18 12:16:51.012780212 +0800
+@@ -68,7 +68,7 @@
+ #include <limits.h>
+ #include <libgen.h>
+ #include <pwd.h>
+-
++#include <sys/resource.h>
+ #include "config.h"
+ 
+ #ifdef ENABLE_NLS
+@@ -297,8 +297,8 @@
+ 	sqlite3_busy_timeout(db, 5000);
+ 	sql_exec(db, "pragma page_size = 4096");
+ 	sql_exec(db, "pragma journal_mode = OFF");
+-	sql_exec(db, "pragma synchronous = OFF;");
+-	sql_exec(db, "pragma default_cache_size = 8192;");
++//	sql_exec(db, "pragma synchronous = OFF;");
++//	sql_exec(db, "pragma default_cache_size = 8192;");
+ 
+ 	return new_db;
+ }
+@@ -474,6 +474,36 @@
+ #endif
+ }
+ 
++static void set_memory_limit()
++{
++	struct rlimit r;
++	int total_ram=0;   
++	FILE *meminfo = fopen("/proc/meminfo", "r");
++	char line[256];
++
++	while(fgets(line, sizeof(line), meminfo))
++	{
++		if(sscanf(line, "MemTotal: %d kB", &total_ram) == 1)
++		break;
++	}
++	fclose(meminfo);
++	DPRINTF(E_DEBUG, L_GENERAL, "DEBUG: found total ram size [%d]kb.\n", total_ram);
++
++	if(total_ram > 0)
++	{
++		int limit_size=total_ram*1024/3; //33%
++		r.rlim_cur = limit_size;
++		r.rlim_max = limit_size;
++		DPRINTF(E_DEBUG, L_GENERAL, "DEBUG: set [%d] as maximun memory limit...\n", limit_size);
++		if (setrlimit(RLIMIT_AS,&r)<0)
++		{
++			DPRINTF(E_ERROR, L_GENERAL, "ERROR: Failed set memory limit...\n");
++		}
++	}
++	else
++		DPRINTF(E_ERROR, L_GENERAL, "Can't get Total memory size and unable to set memory limit \n");
++}
++
+ /* init phase :
+  * 1) read configuration file
+  * 2) read command line arguments
+@@ -490,6 +520,7 @@
+ 	int debug_flag = 0;
+ 	int verbose_flag = 0;
+ 	int options_flag = 0;
++	int mem_limit = 0;
+ 	struct sigaction sa;
+ 	const char * presurl = NULL;
+ 	const char * optionsfile = "/etc/minidlna.conf";
+@@ -861,6 +892,10 @@
+ 			SETFLAG(SYSTEMD_MASK);
+ 			break;
+ #endif
++		case 'M':
++			mem_limit = 1;
++			break;
++
+ 		case 'V':
+ 			printf("Version " MINIDLNA_VERSION "\n");
+ 			exit(0);
+@@ -894,6 +929,7 @@
+ #ifdef __linux__
+ 			"\t-S changes behaviour for systemd\n"
+ #endif
++			"\t-M enable memory limit\n"
+ 			"\t-V print the version number\n",
+ 			argv[0], pidfilename);
+ 		return 1;
+@@ -967,6 +1003,9 @@
+ 	if (writepidfile(pidfilename, pid, uid) != 0)
+ 		pidfilename = NULL;
+ 
++       if(mem_limit)
++		set_memory_limit();
++
+ 	if (uid > 0)
+ 	{
+ 		struct stat st;
+diff -ruN a/playlist.c b/playlist.c
+--- a/playlist.c	2014-08-27 05:09:22.000000000 +0800
++++ b/playlist.c	2017-10-18 12:16:51.015780211 +0800
+@@ -148,6 +148,10 @@
+ 		                          " and NAME = '%q'", plname) <= 0 )
+ 		{
+ 			detailID = GetFolderMetadata(plname, NULL, NULL, NULL, 0);
++			if(!detailID)
++			{
++				continue;
++			}
+ 			sql_exec(db, "INSERT into OBJECTS"
+ 			             " (OBJECT_ID, PARENT_ID, DETAIL_ID, CLASS, NAME) "
+ 			             "VALUES"
+diff -ruN a/scanner.c b/scanner.c
+--- a/scanner.c	2014-08-27 05:09:22.000000000 +0800
++++ b/scanner.c	2017-10-18 12:42:26.963676825 +0800
+@@ -123,6 +123,10 @@
+ 		if( !detailID )
+ 		{
+ 			detailID = GetFolderMetadata(item, NULL, artist, genre, (album_art ? strtoll(album_art, NULL, 10) : 0));
++			if(!detailID)
++			{
++				return -1;
++			}
+ 		}
+ 		ret = sql_exec(db, "INSERT into OBJECTS"
+ 		                   " (OBJECT_ID, PARENT_ID, REF_ID, DETAIL_ID, CLASS, NAME) "
+@@ -174,7 +178,8 @@
+ 		}
+ 		else
+ 		{
+-			insert_container(date_taken, IMAGE_DATE_ID, NULL, "album.photoAlbum", NULL, NULL, NULL, &objectID, &parentID);
++			if(-1 == insert_container(date_taken, IMAGE_DATE_ID, NULL, "album.photoAlbum", NULL, NULL, NULL, &objectID, &parentID))
++				return ;
+ 			sprintf(last_date.parentID, IMAGE_DATE_ID"$%llX", (unsigned long long)parentID);
+ 			last_date.objectID = objectID;
+ 			strncpyt(last_date.name, date_taken, sizeof(last_date.name));
+@@ -188,7 +193,8 @@
+ 
+ 		if( !valid_cache || strcmp(camera, last_cam.name) != 0 )
+ 		{
+-			insert_container(camera, IMAGE_CAMERA_ID, NULL, "storageFolder", NULL, NULL, NULL, &objectID, &parentID);
++			if(-1 == insert_container(camera, IMAGE_CAMERA_ID, NULL, "storageFolder", NULL, NULL, NULL, &objectID, &parentID))
++				return ;
+ 			sprintf(last_cam.parentID, IMAGE_CAMERA_ID"$%llX", (long long)parentID);
+ 			strncpyt(last_cam.name, camera, sizeof(last_cam.name));
+ 			/* Invalidate last_camdate cache */
+@@ -201,7 +207,8 @@
+ 		}
+ 		else
+ 		{
+-			insert_container(date_taken, last_cam.parentID, NULL, "album.photoAlbum", NULL, NULL, NULL, &objectID, &parentID);
++			if(-1 == insert_container(date_taken, last_cam.parentID, NULL, "album.photoAlbum", NULL, NULL, NULL, &objectID, &parentID))
++				return ;
+ 			sprintf(last_camdate.parentID, "%s$%llX", last_cam.parentID, (long long)parentID);
+ 			last_camdate.objectID = objectID;
+ 			strncpyt(last_camdate.name, date_taken, sizeof(last_camdate.name));
+@@ -255,7 +262,8 @@
+ 			else
+ 			{
+ 				strncpyt(last_album.name, album, sizeof(last_album.name));
+-				insert_container(album, MUSIC_ALBUM_ID, NULL, "album.musicAlbum", artist, genre, album_art, &objectID, &parentID);
++				if(-1 == insert_container(album, MUSIC_ALBUM_ID, NULL, "album.musicAlbum", artist, genre, album_art, &objectID, &parentID))
++					return ;
+ 				sprintf(last_album.parentID, MUSIC_ALBUM_ID"$%llX", (long long)parentID);
+ 				last_album.objectID = objectID;
+ 				//DEBUG DPRINTF(E_DEBUG, L_SCANNER, "Creating cached album item: %s/%s/%X\n", last_album.name, last_album.parentID, last_album.objectID);
+@@ -270,12 +278,14 @@
+ 		{
+ 			if( !valid_cache || strcmp(artist, last_artist.name) != 0 )
+ 			{
+-				insert_container(artist, MUSIC_ARTIST_ID, NULL, "person.musicArtist", NULL, genre, NULL, &objectID, &parentID);
++				if(-1 == insert_container(artist, MUSIC_ARTIST_ID, NULL, "person.musicArtist", NULL, genre, NULL, &objectID, &parentID))
++					return ;
+ 				sprintf(last_artist.parentID, MUSIC_ARTIST_ID"$%llX", (long long)parentID);
+ 				strncpyt(last_artist.name, artist, sizeof(last_artist.name));
+ 				last_artistAlbum.name[0] = '\0';
+ 				/* Add this file to the "- All Albums -" container as well */
+-				insert_container(_("- All Albums -"), last_artist.parentID, NULL, "album", artist, genre, NULL, &objectID, &parentID);
++				if(-1 == insert_container(_("- All Albums -"), last_artist.parentID, NULL, "album", artist, genre, NULL, &objectID, &parentID))
++					return ;
+ 				sprintf(last_artistAlbumAll.parentID, "%s$%llX", last_artist.parentID, (long long)parentID);
+ 				last_artistAlbumAll.objectID = objectID;
+ 			}
+@@ -290,8 +300,9 @@
+ 			}
+ 			else
+ 			{
+-				insert_container(album?album:_("Unknown Album"), last_artist.parentID, album?last_album.parentID:NULL,
+-				                 "album.musicAlbum", artist, genre, album_art, &objectID, &parentID);
++				if(-1 == insert_container(album?album:_("Unknown Album"), last_artist.parentID, album?last_album.parentID:NULL,
++				                 "album.musicAlbum", artist, genre, album_art, &objectID, &parentID))
++					return ;
+ 				sprintf(last_artistAlbum.parentID, "%s$%llX", last_artist.parentID, (long long)parentID);
+ 				last_artistAlbum.objectID = objectID;
+ 				strncpyt(last_artistAlbum.name, album ? album : _("Unknown Album"), sizeof(last_artistAlbum.name));
+@@ -312,11 +323,13 @@
+ 		{
+ 			if( !valid_cache || strcmp(genre, last_genre.name) != 0 )
+ 			{
+-				insert_container(genre, MUSIC_GENRE_ID, NULL, "genre.musicGenre", NULL, NULL, NULL, &objectID, &parentID);
++				if(-1 == insert_container(genre, MUSIC_GENRE_ID, NULL, "genre.musicGenre", NULL, NULL, NULL, &objectID, &parentID))
++					return ;
+ 				sprintf(last_genre.parentID, MUSIC_GENRE_ID"$%llX", (long long)parentID);
+ 				strncpyt(last_genre.name, genre, sizeof(last_genre.name));
+ 				/* Add this file to the "- All Artists -" container as well */
+-				insert_container(_("- All Artists -"), last_genre.parentID, NULL, "person", NULL, genre, NULL, &objectID, &parentID);
++				if(-1 == insert_container(_("- All Artists -"), last_genre.parentID, NULL, "person", NULL, genre, NULL, &objectID, &parentID))
++					return ;
+ 				sprintf(last_genreArtistAll.parentID, "%s$%llX", last_genre.parentID, (long long)parentID);
+ 				last_genreArtistAll.objectID = objectID;
+ 			}
+@@ -330,8 +343,9 @@
+ 			}
+ 			else
+ 			{
+-				insert_container(artist?artist:_("Unknown Artist"), last_genre.parentID, artist?last_artist.parentID:NULL,
+-				                 "person.musicArtist", NULL, genre, NULL, &objectID, &parentID);
++				if(-1 == insert_container(artist?artist:_("Unknown Artist"), last_genre.parentID, artist?last_artist.parentID:NULL,
++				                 "person.musicArtist", NULL, genre, NULL, &objectID, &parentID))
++					return ;
+ 				sprintf(last_genreArtist.parentID, "%s$%llX", last_genre.parentID, (long long)parentID);
+ 				last_genreArtist.objectID = objectID;
+ 				strncpyt(last_genreArtist.name, artist ? artist : _("Unknown Artist"), sizeof(last_genreArtist.name));
+@@ -436,6 +450,9 @@
+ 	}
+ 
+ 	detailID = GetFolderMetadata(name, path, NULL, NULL, find_album_art(path, NULL, 0));
++	if(!detailID)
++		return -1;
++
+ 	sql_exec(db, "INSERT into OBJECTS"
+ 	             " (OBJECT_ID, PARENT_ID, DETAIL_ID, CLASS, NAME) "
+ 	             "VALUES"
+@@ -509,7 +526,11 @@
+ 			typedir_objectID = strtol(baseid+1, NULL, 16);
+ 			*baseid = '\0';
+ 		}
+-		insert_directory(name, path, base, typedir_parentID, typedir_objectID);
++		if(-1 == insert_directory(name, path, base, typedir_parentID, typedir_objectID))
++		{
++			free(typedir_parentID);
++			return -1;
++		}
+ 		free(typedir_parentID);
+ 	}
+ 	sql_exec(db, "INSERT into OBJECTS"
+@@ -572,12 +593,18 @@
+ 	ret = sql_exec(db, "INSERT into SETTINGS values ('UPDATE_ID', '0')");
+ 	if( ret != SQLITE_OK )
+ 		goto sql_failed;
++	sqlite_int64 int64Ret = 0;
+ 	for( i=0; containers[i]; i=i+3 )
+ 	{
++		int64Ret = GetFolderMetadata(containers[i+2], NULL, NULL, NULL, 0);
++		if(int64Ret == 0)
++		{
++			goto sql_failed;
++		}
+ 		ret = sql_exec(db, "INSERT into OBJECTS (OBJECT_ID, PARENT_ID, DETAIL_ID, CLASS, NAME)"
+ 		                   " values "
+ 		                   "('%s', '%s', %lld, 'container.storageFolder', '%q')",
+-		                   containers[i], containers[i+1], GetFolderMetadata(containers[i+2], NULL, NULL, NULL, 0), containers[i+2]);
++                                   containers[i], containers[i+1], int64Ret, containers[i+2]);
+ 		if( ret != SQLITE_OK )
+ 			goto sql_failed;
+ 	}
+@@ -790,11 +817,46 @@
+ 		{
+ 			type = resolve_unknown_type(full_path, dir_types);
+ 		}
+-		if( (type == TYPE_DIR) && (access(full_path, R_OK|X_OK) == 0) )
++
++		int c,k;
++		char *str = full_path;
++		for(c = k = 0; str[k]; k++)
+ 		{
++			c += (str[k] == '/');
++		}
++		if(c>100)
++			continue;
++		
++		if( (type == TYPE_DIR) && (access(full_path, R_OK|X_OK) == 0) && (name[0] != '$') )//anny add
++		{
++			if(-1 == insert_directory(name, full_path, BROWSEDIR_ID, (parent ? parent:""), i+startID))
++			{
++				if(name)
++				{
++					free(name);
++					name = NULL;
++				}
++				if(namelist[i])
++				{
++					free(namelist[i]);
++					namelist[i] = NULL;
++				}
++				continue;
++			}
+ 			char *parent_id;
+-			insert_directory(name, full_path, BROWSEDIR_ID, THISORNUL(parent), i+startID);
+ 			xasprintf(&parent_id, "%s$%X", THISORNUL(parent), i+startID);
++			//jef add +
++			if(name)
++			{
++				free(name);
++				name=NULL;
++			}
++			if(namelist[i])
++			{
++				free(namelist[i]);
++				namelist[i]=NULL;
++			}
++			//jef add -
+ 			ScanDirectory(full_path, parent_id, dir_types);
+ 			free(parent_id);
+ 		}
+@@ -803,14 +865,17 @@
+ 			if( insert_file(name, full_path, THISORNUL(parent), i+startID, dir_types) == 0 )
+ 				fileno++;
+ 		}
+-		free(name);
+-		free(namelist[i]);
++		if(name != NULL)
++			free(name);
++		if(namelist[i] != NULL)
++			free(namelist[i]);
+ 	}
+ 	free(namelist);
+ 	free(full_path);
+ 	if( !parent )
+ 	{
+ 		DPRINTF(E_WARN, L_SCANNER, _("Scanning %s finished (%llu files)!\n"), dir, fileno);
++		system("echo \"###MiniDlna scan finished\" > /dev/console");
+ 	}
+ }
+ 
+@@ -840,8 +905,8 @@
+ 	struct media_dir_s *media_path;
+ 	char path[MAXPATHLEN];
+ 
+-	if (setpriority(PRIO_PROCESS, 0, 15) == -1)
+-		DPRINTF(E_WARN, L_INOTIFY,  "Failed to reduce scanner thread priority\n");
++//	if (setpriority(PRIO_PROCESS, 0, 15) == -1)
++//		DPRINTF(E_WARN, L_INOTIFY,  "Failed to reduce scanner thread priority\n");
+ 	_notify_start();
+ 
+ 	setlocale(LC_COLLATE, "");

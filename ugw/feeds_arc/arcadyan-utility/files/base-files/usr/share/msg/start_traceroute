@@ -1,0 +1,2 @@
+#action for Diagnostics.asp traceroute
+arca.dbus.misc:diag CMD_TRACEROUTE_START $(1)

@@ -1,0 +1,74 @@
+diff --git a/src/forward.c b/src/forward.c
+index f5dfdcb..5475ffd 100644
+--- a/src/forward.c
++++ b/src/forward.c
+@@ -262,6 +262,26 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+ #ifdef DNS64 
+   int dns64_mark = 0;
+ #endif
++  //crazy_liang 2013.5.21: mark DNS query which was sent from local. 
++  int is_local_dns = 0;
++  unsigned int lan2wan_mark = 0;
++  extern int is_from_localhost(struct in_addr addr);
++
++  if(udpaddr != NULL && udpaddr->sa.sa_family == AF_INET)
++  {
++	  is_local_dns = is_from_localhost(udpaddr->in.sin_addr);
++  }
++  //TODO: Please add comparison for IPv6 addresses.
++
++  if(is_local_dns == 0)
++  {
++	  lan2wan_mark = 0x0001U;
++  }
++  else
++  {
++	  lan2wan_mark = 0;
++  }
++  //end crazy_liang 2013.5.21
+ 
+ #ifdef DNS46
+   if(forward != NULL)
+@@ -568,6 +588,22 @@ static int forward_query(int udpfd, union mysockaddr *udpaddr,
+ 		    }
+ #endif
+ 		}
++
++		  //crazy_liang 2013.5.21: mark DNS query which was sent from local. 
++#ifdef HAVE_CONNTRACK
++		  if (option_bool(OPT_CONNTRACK))
++		  {
++			  unsigned int mark = 0;
++			  getsockopt(fd, SOL_SOCKET, SO_MARK, &mark, sizeof(unsigned int));
++			  if(mark == 0)
++			  {
++				  setsockopt(fd, SOL_SOCKET, SO_MARK, &lan2wan_mark, sizeof(unsigned int));
++			  }
++		  }
++		  else
++#endif
++		  setsockopt(fd, SOL_SOCKET, SO_MARK, &lan2wan_mark, sizeof(unsigned int));
++		  //end crazy_liang 2013.5.21
+ 	      
+ #ifdef HAVE_DNSSEC
+ 	      if (option_bool(OPT_DNSSEC_VALID) && (forward->flags & FREC_ADDED_PHEADER))
+diff --git a/src/rfc1035.c b/src/rfc1035.c
+index 71b7745..09272e1 100644
+--- a/src/rfc1035.c
++++ b/src/rfc1035.c
+@@ -1983,3 +1983,15 @@ size_t answer_request(struct dns_header *header, char *limit, size_t qlen,
+   
+   return len;
+ }
++
++//crazy_liang 2013.5.21
++/*
++ * Check whether the DNS query was sent from local programs.
++ */
++int is_from_localhost(struct in_addr addr)
++{
++	in_addr_t ip_addr = ntohl(addr.s_addr);
++
++	return ((ip_addr & 0xFF000000) == 0x7F000000); /* 127.0.0.0/8    (loopback) */
++}
++//end crazy_liang 2013.5.21

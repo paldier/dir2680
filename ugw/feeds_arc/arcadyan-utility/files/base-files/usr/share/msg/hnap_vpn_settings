@@ -1,0 +1,3 @@
+#******** hnap_vpn_settings action ********
+arca.dbus.l2tpd:CMD_RESTART
+arca.dbus.firewall:CMD_RESTART l2tpd_mod

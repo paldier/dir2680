@@ -1,0 +1,14 @@
+#arca.dbus.twonkyserver:CMD_STOP
+#arca.dbus.vsftpd:CMD_STOP
+#arca.dbus.samba:CMD_STOP
+#arca.dbus.misc:storage remove $(1)
+#arca.dbus.vsftpd:CMD_START
+#arca.dbus.samba:CMD_START
+#arca.dbus.twonkyserver:CMD_START
+arca.dbus.usbapp:CMD_DLNA_STOP
+arca.dbus.usbapp:CMD_FTP_STOP
+arca.dbus.usbapp:CMD_SAMBA_STOP
+arca.dbus.archotplugd:CMD_UNMOUNT $(1)
+arca.dbus.usbapp:CMD_FTP_START
+arca.dbus.usbapp:CMD_SAMBA_START
+arca.dbus.usbapp:CMD_DLNA_START

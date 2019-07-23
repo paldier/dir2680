@@ -1,0 +1,46 @@
+#!/bin/sh
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export TZ="UTC0"
+
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		echo "mount mydlink"
+
+		mkdir -m 777 /mydlink
+		mkdir -m 400 /cert
+		mkdir -m 777 /config
+
+		/bin/mount -t yaffs2 /dev/mtdblock9 /mydlink
+		/bin/mount -t yaffs2 /dev/mtdblock10 /cert
+		/bin/mount -t yaffs2 /dev/mtdblock11 /config
+
+		ln -s /cert /mydlink/
+		ln -s /config /mydlink/
+
+		if [ ! -f /mydlink/version ] ; then
+			cp -fr /usr/mydlink/* /mydlink/
+		else
+			upgrade_flag=`mng_cli get ARC_SYS_UpgradeFlag`
+			if [ $upgrade_flag == "1" ] ; then
+				# Auto upgrade, and the glbcfg will be set "0" in airupgrade.
+				cp -fr /usr/mydlink/* /mydlink/
+			fi
+			if [ $upgrade_flag == "2" ] ; then
+				# Local FW
+				cp -fr /usr/mydlink/* /mydlink/
+				mng_cli set ARC_SYS_UpgradeFlag="0"
+				mngcli commit
+			fi
+		fi
+		;;
+
+	"stop" | "CMD_STOP")
+		;;
+
+	*)
+		echo $0 'boot          - mount mydlink'
+		echo $0 'start         - mount mydlink'
+		echo $0 'stop          - do nothing'
+		;;
+esac

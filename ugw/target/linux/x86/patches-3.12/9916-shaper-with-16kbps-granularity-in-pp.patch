@@ -1,0 +1,14 @@
+# HG changeset patch
+# Parent 3f8823d80a5a813ba42deab772b905e37e3a5fac
+
+diff --git a/include/linux/avalanche/generic/pp_qos_p7.h b/include/linux/avalanche/generic/pp_qos_p7.h
+--- a/include/linux/avalanche/generic/pp_qos_p7.h
++++ b/include/linux/avalanche/generic/pp_qos_p7.h
+@@ -137,6 +137,7 @@
+ 
+ #define PP_QOS_MIN_VAL_FOR_MAX_GLOBAL_CREDIT_BYTS           (MAX_IP_PACKET_SIZE * 2)
+ #define PP_QOS_MIN_VAL_FOR_MAX_GLOBAL_CREDIT_PKT            (32)
++#define PP_QOS_IT_CREDIT_BYTES_TO_RATE_IN_KBIT(x,divider)   (((PP_QOS_ITERATION_PER_SECOND/divider) * x * 8) /1000)
+ 
+ static inline int floor_x_by_y(int x, int y) {
+ 	if ( y==0 )

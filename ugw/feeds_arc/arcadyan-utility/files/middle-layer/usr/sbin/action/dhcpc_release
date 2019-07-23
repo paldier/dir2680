@@ -1,0 +1,4 @@
+## $1 => wan_idx=xx
+
+echo "\$1:$1" > /dev/console
+interface-agent dhcpc release "$1"

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+case "$1" in
+	"CMD_BOOT" | "CMD_START" | "CMD_RESTART")
+        	sip_enable=`mng_cli get ARC_FIREWALL_ALGSIP_Enable`
+
+        	if [ $sip_enable = "1" ] ; then
+			echo "sip alg enable..."
+			insmod nf_conntrack_sip
+			insmod nf_nat_sip
+			conntrack -D -f ipv4 -p udp --dport 5060
+        	else
+			rmmod nf_nat_sip
+			rmmod nf_conntrack_sip
+			conntrack -D -f ipv4 -p udp --dport 5060
+        	fi
+
+		;;
+
+	"CMD_STOP")
+		rmmod nf_nat_sip
+		rmmod nf_conntrack_sip
+		conntrack -D -f ipv4 -p udp --dport 5060
+
+		;;
+
+	*)
+		echo $0 'sip alg          - setup sip alg'
+		;;
+esac

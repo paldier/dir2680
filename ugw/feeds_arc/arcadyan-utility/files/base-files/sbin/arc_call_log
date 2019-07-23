@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/usr/sbin/sip_config TEL_LOG_LogPrint2

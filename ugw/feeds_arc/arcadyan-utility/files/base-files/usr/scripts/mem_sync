@@ -1,0 +1,28 @@
+#!/bin/sh
+
+### Usage: mem_sync [force]
+
+if [ "x$1" != "x" -a "$1" = "force" ]
+then
+	echo 1 > /proc/sys/vm/drop_caches
+	echo 8192 > /proc/sys/vm/min_free_kbytes
+	exit 0
+fi
+
+
+### sync by free memory ###
+
+LIMIT=15000     #15M
+MEM=`free | grep Mem | awk '{print $4}'`
+
+echo "free memory is $MEM(KB)"
+
+if [ $MEM -le $LIMIT ]
+then
+	echo "free memory<$LIMIT(KB), sync cached memory .."
+	# do it
+	echo 1 > /proc/sys/vm/drop_caches
+	echo 8192 > /proc/sys/vm/min_free_kbytes
+else
+	echo "do nothing .."
+fi

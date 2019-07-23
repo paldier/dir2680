@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo "run factory default" > /dev/console
+
+rm -rf /overlay/*
+sync
+sleep 1
+reboot

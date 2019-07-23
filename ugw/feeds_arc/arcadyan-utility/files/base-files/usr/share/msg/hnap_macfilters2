@@ -1,0 +1,2 @@
+#******** hnap_macfilters_settings action ********
+arca.dbus.firewall:CMD_RESTART macfilter_mod

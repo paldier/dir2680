@@ -1,0 +1,66 @@
+## $1 action
+## $2 interface type
+## $3..$N interface ID
+
+params=$@
+intf_type=$2
+capwap_param=$3
+portal_param="$1 $2 $3"
+/usr/sbin/saveaction "$0 $@"
+
+shift
+echo "[ui_interface_agent] $@" > /dev/console
+interface-agent "$@"
+lan_interface_agent="0"
+capwap_ifparam=$1
+if [ $1 == "lan" ]; then
+	shift
+	lan_interface_agent="1"
+	#interface-agent lan_dhcpd "$@"
+fi
+interface-agent reload
+#/usr/sbin/cpinitscript network
+if [ "$lan_interface_agent" == "1" ]; then
+	interface-agent dnsmasq_reload
+	#/usr/sbin/cpinitscript dnsmasq
+
+        # arc_site_blocking daemon by Garnet 2016/09/07
+        if [ -x "/usr/bin/arc_site_blocking" ] ; then
+                echo "restart_lan_svc /usr/bin/arc_site_blocking..." > /dev/console
+                /usr/bin/arc_site_blocking &
+        fi
+
+    ##marked by ygchen, use "ac_cfgwr_cli brw" in 10-network.init instead
+	##to workround the issue that after reload lanx, the associated wlan interfaces will disappear in br-lanx
+	#/usr/sbin/cpinitscript capwap
+fi
+
+echo "[ui_iptablesrules_agent] $params" > /dev/console
+iptablesrules-agent $params
+
+if [ "${intf_type}" = "wan" ]; then
+	echo "[firewall_agent] $params" > /dev/console
+	firewall_agent endis
+fi
+
+echo "[ui_routing_agent] $params" > /dev/console
+ui_route_agent $params
+
+if [ ${params:0:4} == "edit" ] && [ ${capwap_ifparam:0:3} == "lan" ]; then
+	echo "[capwap-agent] vlan upd $capwap_param" > /dev/console
+	capwap-agent vlan upd $capwap_param
+else
+	echo "[capwap-agent] vlan add $capwap_param" > /dev/console
+	capwap-agent vlan add $capwap_param
+fi
+
+if [ ! -f /tmp/configapply/99-portal.init ]; then
+	echo "#!/bin/sh" > /tmp/configapply/99-portal.init
+	echo "" >> /tmp/configapply/99-portal.init
+	chmod +x /tmp/configapply/99-portal.init
+	echo "portal-agent edit lan all > /dev/console" >> /tmp/configapply/99-portal.init
+fi
+#echo "portal-agent $portal_param > /dev/console" >> /tmp/configapply/99-portal.init
+#echo "portal-agent $portal_param > /dev/console" >> /dev/console
+
+exit 0

@@ -1,0 +1,2 @@
+arca.dbus.misc:printer remove $(1)
+arca.dbus.usbapp:CMD_SAMBA_UPDATE

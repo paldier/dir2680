@@ -1,0 +1,4 @@
+arca.dbus.wlan:CMD_WL_SECURITY
+arca.dbus.wlan:CMD_RESTART
+arca.dbus.nlinkd:CMD_RESTART
+arca.dbus.httpd:CMD_RESTART

@@ -1,0 +1,10 @@
+arca.dbus.dhcp6c:CMD_STOP $(1)
+arca.dbus.wanppp:CMD_STOP $(1)
+arca.dbus.v6rd:CMD_STOP
+arca.dbus.v6to4:CMD_STOP
+arca.dbus.misc:routes6 CMD_STOP
+arca.dbus.radvd:CMD_STOP
+arca.dbus.dhcp6d:CMD_STOP
+arca.dbus.misc:if6 CMD_STOP $(1)
+arca.dbus.misc:sleep 1
+arca.dbus.autowandetect:CMD_AUTO_IP6_RESTART

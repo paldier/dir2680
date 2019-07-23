@@ -1,0 +1,3 @@
+#action for dhcp release
+arca.dbus.dhcpc:CMD_DHCPC_RELEASE
+arca.dbus.dnsmasq:CMD_CLEAR_CACHE

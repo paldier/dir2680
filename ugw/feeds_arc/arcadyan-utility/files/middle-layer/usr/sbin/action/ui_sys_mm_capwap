@@ -1,0 +1,4 @@
+capwap-agent $1 $2 $3
+wifigw-agent all
+
+exit 0

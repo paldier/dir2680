@@ -1,0 +1,35 @@
+#!/bin/sh
+
+#kernel printk message level
+if [ "${1}" = "CMD_DISABLE" ]; then
+	echo "3 4 1 7" > /proc/sys/kernel/printk
+fi
+
+# move to file system
+#echo "
+#	#!/bin/sh
+#	mngcli backup /tmp/xxx
+#	grep \$1 /tmp/xxx
+#" > /usr/bin/mngcli_search
+#chmod a+x /usr/bin/mngcli_search 
+
+#arca_log message level
+mptest=`uboot_env --get --name mptest`
+if [ "x$mptest" == "x1" ]; then
+	echo 5 > /tmp/arca_loglevel
+fi
+
+#ARCUSB debug message level 3=more 1=less
+mng_cli set VAR_LTE_MOREMSG=0x1
+
+#Workaround, set file permission here
+chmod 777 -R /var/cache
+chmod 777 -R /var/cups
+chmod 777 -R /var/spool
+chmod 777 -R /var/lock/subsys
+
+
+#Workaround, set owner for cups backend libs
+#chown -R root.root /usr/lib/cups/*
+
+

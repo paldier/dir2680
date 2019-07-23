@@ -1,0 +1,51 @@
+diff -uNrp dnsmasq-2.79_303-patch/src/dnsmasq.c dnsmasq-2.79/src/dnsmasq.c
+--- dnsmasq-2.79_303-patch/src/dnsmasq.c	2018-05-16 18:51:54.391291765 +0800
++++ dnsmasq-2.79/src/dnsmasq.c	2018-05-16 19:16:24.451373133 +0800
+@@ -727,19 +727,19 @@ int main (int argc, char **argv)
+ #endif
+ 
+   if (daemon->port == 0)
+-    my_syslog(LOG_INFO, _("started, version %s DNS disabled"), VERSION);
++    my_syslog(LOG_INFO, _("dnsmasq started, DNS disabled"));
+   else 
+     {
+       if (daemon->cachesize != 0)
+-	my_syslog(LOG_INFO, _("started, version %s cachesize %d"), VERSION, daemon->cachesize);
++	my_syslog(LOG_INFO, _("dnsmasq started, cachesize %d"), daemon->cachesize);
+       else
+-	my_syslog(LOG_INFO, _("started, version %s cache disabled"), VERSION);
++	my_syslog(LOG_INFO, _("dnsmasq started, cache disabled"));
+ 
+       if (option_bool(OPT_LOCAL_SERVICE))
+ 	my_syslog(LOG_INFO, _("DNS service limited to local subnets"));
+     }
+   
+-  my_syslog(LOG_INFO, _("compile time options: %s"), compile_opts);
++  //my_syslog(LOG_INFO, _("compile time options: %s"), compile_opts);
+ 
+   if (chown_warn != 0)
+     my_syslog(LOG_WARNING, "chown of PID file %s failed: %s", daemon->runfile, strerror(chown_warn));
+diff -uNrp dnsmasq-2.79_303-patch/src/log.c dnsmasq-2.79/src/log.c
+--- dnsmasq-2.79_303-patch/src/log.c	2018-05-16 18:51:54.360291763 +0800
++++ dnsmasq-2.79/src/log.c	2018-05-16 19:17:13.248375833 +0800
+@@ -187,7 +187,7 @@ static void log_write(void)
+ 		{
+ 		  int e = entries_lost;
+ 		  entries_lost = 0; /* avoid wild recursion */
+-		  my_syslog(LOG_WARNING, _("overflow: %d log entries lost"), e);
++		  //my_syslog(LOG_WARNING, _("overflow: %d log entries lost"), e);
+ 		}	  
+ 	    }
+ 	  continue;
+diff -uNrp dnsmasq-2.79_303-patch/src/network.c dnsmasq-2.79/src/network.c
+--- dnsmasq-2.79_303-patch/src/network.c	2018-05-16 18:51:54.379291764 +0800
++++ dnsmasq-2.79/src/network.c	2018-05-16 19:17:50.637377903 +0800
+@@ -701,7 +701,7 @@ static int make_sock(union mysockaddr *a
+   int family = addr->sa.sa_family;
+   int fd, rc, opt = 1;
+   
+-  my_syslog(LOG_INFO, _("make: family %d\n"), family );
++  //my_syslog(LOG_INFO, _("make: family %d\n"), family );
+ 
+   if ((fd = socket(family, type, 0)) == -1)
+     {

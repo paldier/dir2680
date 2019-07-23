@@ -1,0 +1,25 @@
+#!/bin/sh
+
+wan_index=`mng_cli get ARC_WAN_DefaultRouteIdx`
+if [ "$wan_index" = "" ]; then
+	wan_index=0
+fi
+
+wan_type=`mng_cli get ARC_WAN_Type`
+wan_proto=`mng_cli get ARC_WAN_${wan_type}0${wan_index}_IP4_Proto`
+wan_pptp_dhcp=`mng_cli get ARC_WAN_${wan_index}_PPTP_IP4_DHCP`
+wan_l2tp_dhcp=`mng_cli get ARC_WAN_${wan_index}_L2TP_IP4_DHCP`
+if [ "$wan_proto" = "static" ]; then
+	echo "static..."
+elif [ $wan_proto = "pptp" ] && [ "$wan_pptp_dhcp" = "0" ] ; then
+	echo "static pptp..."
+elif [ $wan_proto = "l2tp" ] && [ "$wan_l2tp_dhcp" = "0" ] ; then
+	echo "static l2tp..."
+else
+mng_cli set ARC_WAN_${wan_index}_IP6_DNS_RuntimeList="" set ARC_WAN_${wan_index}_IP4_Addr="0.0.0.0" set ARC_WAN_${wan_index}_IP4_Netmask="0.0.0.0" set ARC_WAN_${wan_index}_IP4_Gateway="0.0.0.0" set ARC_WAN_${wan_index}_IP4_DNS=""  set ARC_WAN_${wan_index}_IP4_DHCP_Lease="0" set ARC_SYS_DNS=""
+
+#mng_cli set ARC_WAN_${wan_index}_PPP_GET_IP4_Addr="0.0.0.0" set ARC_WAN_${wan_index}_PPP_GET_IP4_Netmask="0.0.0.0" set ARC_WAN_${wan_index}_PPP_GET_IP4_Gateway="0.0.0.0" set ARC_WAN_${wan_index}_PPP_Status="Disconnected"
+
+#mng_cli set ARC_WAN_${wan_index}_PPTP_IP4_DNS=""
+fi
+

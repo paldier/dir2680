@@ -1,0 +1,229 @@
+{
+	"menu":[
+		{
+			"Id":"1",
+			"Name":"System",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"1.1",
+					"Name":"Model Name",
+					"Text":"@@ARC_SYS_ModelName",
+					"Parent":"1",
+					"children":[]
+				},
+				{
+					"Id":"1.2",
+					"Name":"Firmware Version",
+					"Text":"@@ARC_SYS_FWVersion",
+					"Parent":"1",
+					"children":[]
+				}				
+			]
+		},
+
+		{
+			"Id":"2",
+			"Name":"WAN",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"2.1",
+					"Name":"IPv4",
+					"Text":"",
+					"Parent":"2",
+					"children":[
+						{
+							"Id":"2.1.1",
+							"Name":"WAN IP address",
+							"Text":"@@ARC_WAN_0_IP4_Addr",
+							"Parent":"2.1",
+							"children":[]
+						},			
+						{
+							"Id":"2.1.2",
+							"Name":"Gateway address",
+							"Text":"@@ARC_WAN_0_IP4_Gateway",
+							"Parent":"2.1",
+							"children":[]
+						}
+					]
+				},
+				{
+					"Id":"2.2",
+					"Name":"IPv6",
+					"Text":"",
+					"Parent":"2",
+					"children":[
+						{
+							"Id":"2.2.1",
+							"Name":"WAN IP address",
+							"Text":"@@ARC_WAN_0_IP6_Addr",
+							"Parent":"2.2",
+							"children":[]
+						},			
+						{
+							"Id":"2.2.2",
+							"Name":"Gateway address",
+							"Text":"@@ARC_WAN_0_IP6_Gateway",
+							"Parent":"2.2",
+							"children":[]
+						}
+					]				
+				}
+			]
+		},
+
+		{
+			"Id":"3",
+			"Name":"LAN",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"3.1",
+					"Name":"IPv4",
+					"Text":"",
+					"Parent":"3",
+					"children":[
+						{
+							"Id":"3.1.1",
+							"Name":"LAN IP address",
+							"Text":"@@ARC_LAN_0_IP4_Addr",
+							"Parent":"3.1",
+							"children":[]
+						}
+					]
+				},				
+				{
+					"Id":"3.2",
+					"Name":"IPv6",
+					"Text":"",
+					"Parent":"3",
+					"children":[
+						{
+							"Id":"3.2.1",
+							"Name":"LAN IP address",
+							"Text":"@@ARC_LAN_0_IP6_Addr",
+							"Parent":"3.2",
+							"children":[]
+						}
+					]
+				}
+			]
+		},
+
+		{
+			"Id":"4",
+			"Name":"WLAN",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"4.1",
+					"Name":"2.4GHz SSID",
+					"Text":"@bd@essid",
+					"Parent":"4",
+					"children":[]
+				},			
+				{
+					"Id":"4.2",
+					"Name":"5GHz SSID",
+					"Text":"@bd@essid5g",
+					"Parent":"4",
+					"children":[]
+				}
+			]
+		},		
+		
+		{
+			"Id":"5",
+			"Name":"Bluetooth",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"5.1",
+					"Name":"@@ARC_IOT_BT_Enable",
+					"Text":"",
+					"Parent":"5",
+					"children":[]			
+				}
+			]
+		},
+
+		{
+			"Id":"6",
+			"Name":"Zigbee",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"6.1",
+					"Name":"@@ARC_IOT_ZB_Enable",
+					"Text":"",
+					"Parent":"6",
+					"children":[]			
+				}
+			]
+		},
+
+		{
+			"Id":"7",
+			"Name":"Cloud",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"7.1",
+					"Name":"@fn@App_enable",
+					"Text":"@fn@App_time",
+					"Parent":"7",
+					"children":[]
+				},			
+				{
+					"Id":"7.2",
+					"Name":"UUID",
+					"Text":"@bd@uuid",
+					"Parent":"7",
+					"children":[]
+				}
+			]
+		},
+
+		{
+			"Id":"8",
+			"Name":"Error",
+			"Text":"Information",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"8.1",
+					"Name":"@fn@App_errnum_1",
+					"Text":"@fn@App_errmsg_1",
+					"Parent":"8",
+					"children":[]
+				}
+			]
+		},
+		
+		{
+			"Id":"9",
+			"Name":"Sound setting",
+			"Text":"",
+			"Parent":"",
+			"children":[
+				{
+					"Id":"9.1",
+					"Name":"@fn@sound_volume",
+					"Text":"CMD:#0UP #1DOWN",
+					"act_mask":"56",
+					"Parent":"9",
+					"children":[]
+				}
+			]
+		}		
+	]
+}

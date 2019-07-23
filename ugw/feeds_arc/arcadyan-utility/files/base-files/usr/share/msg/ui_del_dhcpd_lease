@@ -1,0 +1,1 @@
+arca.dbus.dhcpd:CMD_DEL_LEASE $(1)

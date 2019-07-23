@@ -1,0 +1,5 @@
+iptables -t raw -F
+iptables -t raw -A PREROUTING -s 10.103.0.100 -j LOG
+iptables -t raw -L -n
+
+exit 0

@@ -1,0 +1,1 @@
+arca.dbus.misc:wlan CMD_WPS_ENTERPIN $(1)

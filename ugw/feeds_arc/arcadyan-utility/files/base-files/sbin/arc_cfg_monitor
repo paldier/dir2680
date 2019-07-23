@@ -1,0 +1,33 @@
+#!/bin/sh
+
+do_commit=0
+
+cfg_dft_get()
+{
+	echo `mngcli dft_get "$1"|cut -d"=" -f2`
+}
+
+cfg_check()
+{
+	key=$1
+	val=`mngcli get $key`
+	dft=`cfg_dft_get $key`
+	[ $val -eq $dft ] || {
+		cfg_debug "cfg $key restore to $dft"
+		mngcli set $key=$dft
+		do_commit=1
+	}
+}
+
+cfg_debug()
+{
+	echo " >>> $@"
+}
+
+#cfg_check ARC_USB_SMB_Enable
+#cfg_check ARC_USB_FTP_Enable
+
+[ $do_commit -eq 1 ] && {
+	cfg_debug "cfg commit!!"
+	mngcli commit
+}

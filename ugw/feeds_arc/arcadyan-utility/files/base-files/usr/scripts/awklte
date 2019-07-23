@@ -1,0 +1,76 @@
+BEGIN{FS="[ :=,\"]"}
+/^\+CGATT/{
+	printf("'connection_status':'%s',\n",$3)	
+}
+/^Transmission mode/{
+	printf("'transmission_mode':'")	
+	for(i=2;i<NF;i++)
+	{
+		if($i == "")
+			continue
+		if(i==NF-1)
+			printf("%s",$i)
+		else
+			printf("%s ",$i)
+	}
+	printf("',\n")
+}
+/^Bandwidth/{
+	if($3=="0")
+		printf("'band_width':'1.4 MHz'\n,")	
+	if($3=="1")
+		printf("'band_width':'3 MHz'\n,")	
+	if($3=="2")
+		printf("'band_width':'5 MHz'\n,")	
+	if($3=="3")
+		printf("'band_width':'10 MHz',\n")	
+	if($3=="4")
+		printf("'band_width':'15 MHz',\n")	
+	if($3=="5")
+		printf("'band_width':'20 MHz',\n")	
+}
+/^EARFCN/{
+	printf("'dl_earfcn':'%s',\n",$3)	
+}
+/^Physical Cell ID/{
+	printf("'cell_id':'%s',\n",$5)
+}
+/^\+CGCONTRDP/{
+	printf("'apn':'%s',\n",$6)
+}
+/^\+COPS/{
+	printf("'plmn':'%s',\n",$4)	
+}
+/^%CSQ/{
+	printf("'strength':'%s',\n",$3)	
+}
+/^RSRP/{
+	printf("'rsrp':'%s',\n",$6)	
+}
+/^RSRQ/{
+	printf("'rsrq':'%s',\n",$6)	
+}
+/^SINR/{
+	printf("'sinr':'%s',\n",$6)	
+}
+/^RX total number of bytes/{
+	printf("'recv':'%s bytes',\n",$7)	
+}
+/^TX total number of bytes/{
+	printf("'sent':'%s bytes',\n",$7)	
+}
+/^RX Throughput/{
+	printf("'rx':'%s',\n",$4)
+}
+/^TX Throughput/{
+	printf("'tx':'%s',\n",$4)
+}
+/^APN-AMBR downlink/{
+	printf("'rx_op_limit':'%s kbps',\n",$4)	
+}
+/^APN-AMBR uplink/{
+	printf("'tx_op_limit':'%s kbps',\n",$4)	
+}
+/^HLRD Revision/{
+printf("'firmware_ver':'%s',\n",$4);
+}

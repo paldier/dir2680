@@ -1,0 +1,52 @@
+diff --git a/include/arc-overwrite.mk b/include/arc-overwrite.mk
+new file mode 100755
+index 0000000..0e68c00
+--- /dev/null
++++ b/include/arc-overwrite.mk
+@@ -0,0 +1,16 @@
++LINUX_BASENAME=$(shell basename $(LINUX_DIR))
++CONFIG_DIR=$(shell cat $(TOPDIR)/active_config)
++LINUX_DESTDIR=$(shell dirname $(LINUX_DIR))
++OVERWRITE_DIR=$(TOPDIR)/$(CONFIG_DIR)/overwrite
++
++# linux kernel config for assigned project
++ARC_LINUX_CONFIG=$(shell if [ -f $(OVERWRITE_DIR)/$(LINUX_BASENAME)/kernel_config ]; then echo "$(OVERWRITE_DIR)/$(LINUX_BASENAME)/kernel_config"; fi;)
++
++define Kernel/Overwrite/Default
++	echo "arc_linux_config="$(ARC_LINUX_CONFIG)
++	if [ -d $(OVERWRITE_DIR) ]; then \
++		if [ -d $(OVERWRITE_DIR)/$(LINUX_BASENAME) ]; then \
++			$(CP) $(OVERWRITE_DIR)/$(LINUX_BASENAME) $(LINUX_DESTDIR); \
++		fi \
++	fi
++endef
+diff --git a/include/kernel-build.mk b/include/kernel-build.mk
+old mode 100644
+new mode 100755
+index 973f61c..060d7a2
+--- a/include/kernel-build.mk
++++ b/include/kernel-build.mk
+@@ -16,6 +16,7 @@ STAMP_PREPARED:=$(LINUX_DIR)/.prepared
+ STAMP_CONFIGURED:=$(LINUX_DIR)/.configured
+ include $(INCLUDE_DIR)/download.mk
+ include $(INCLUDE_DIR)/quilt.mk
++include $(INCLUDE_DIR)/arc-overwrite.mk
+ include $(INCLUDE_DIR)/kernel-defaults.mk
+ 
+ define Kernel/Prepare
+@@ -58,6 +59,7 @@ ifdef CONFIG_COLLECT_KERNEL_DEBUG
+   endef
+ endif
+ 
++Kernel/Overwrite:=$(Kernel/Overwrite/Default)
+ define BuildKernel
+   $(if $(QUILT),$(Build/Quilt))
+   $(if $(LINUX_SITE),$(call Download,kernel))
+@@ -101,6 +103,7 @@ define BuildKernel
+ 	) > $$@
+ 
+   $(STAMP_CONFIGURED): $(STAMP_PREPARED) $(LINUX_KCONFIG_LIST) $(TOPDIR)/.config
++	$(Kernel/Overwrite)
+ 	$(Kernel/Configure)
+ 	touch $$@
+ 

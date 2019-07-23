@@ -1,0 +1,30 @@
+diff --git a/drivers/net/ppp/ppp_generic.c b/drivers/net/ppp/ppp_generic.c
+--- a/drivers/net/ppp/ppp_generic.c
++++ b/drivers/net/ppp/ppp_generic.c
+@@ -245,9 +245,9 @@
+ #define seq_before(a, b)	((s32)((a) - (b)) < 0)
+ #define seq_after(a, b)		((s32)((a) - (b)) > 0)
+ 
+-#define IP_PROTO(skb)   (skb)->data[11]
+-#define SRC_PORT(skb)   (((skb)->data[22] << 8) + (skb)->data[23])
+-#define DST_PORT(skb)   (((skb)->data[24] << 8) + (skb)->data[25])
++#define IP_PROTO(skb)   (skb)->data[13]
++#define SRC_PORT(skb)   (((skb)->data[24] << 8) + (skb)->data[25])
++#define DST_PORT(skb)   (((skb)->data[26] << 8) + (skb)->data[27])
+ #define MARK_LAN2WAN    0x100
+ /* Prototypes. */
+ static int ppp_unattached_ioctl(struct net *net, struct ppp_file *pf,
+@@ -1219,6 +1219,13 @@
+ 					{
+ 						skip = 1;
+ 					}
++					if(!strcmp(current->comm, "dnsmasq") && DST_PORT(skb) == 53)
++					{
++						if(skb->sk && skb->sk->sk_mark == 0)
++						{
++							skip = 1;
++						}
++					}
+ 				}
+ 			}
+ 		}

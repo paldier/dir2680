@@ -1,0 +1,5 @@
+#
+# For verify hardware purpose, collect Arcadyan packages as feeds.
+# Please execute "./script/feeds install -a" after adding package.
+# Bryce Liu ++ 2016/09/23
+#

@@ -1,0 +1,31 @@
+#!/bin/sh
+# anne: Hijact origin /usr/sbin/status_oper to status_oper_intel
+
+#0:tmp_get, 1:tmp_set
+TMP_OP=0
+
+# $1~$* - wan interfaces
+if [ "$#" -lt 3 ] ; then
+	return
+fi
+
+if [ "$1" == "SET" ] ; then
+	TMP_OP=1
+	shift 2
+elif [ "$1" == "GET" ] ; then
+	TMP_OP=0
+	shift 2
+else
+	/usr/sbin/status_oper_intel $@
+	return
+fi
+
+while [ -n "$1" ] ; do
+	if [ $TMP_OP = 1 ] ; then
+		mng_cli tmp_set $1=$2
+		shift 2
+	else
+		mng_cli tmp_get $1
+		return
+	fi
+done

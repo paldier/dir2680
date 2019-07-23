@@ -1,0 +1,2 @@
+arca.dbus.sipproxy:CMD_SETUP ex $(1)
+arca.dbus.sipproxy:external

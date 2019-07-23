@@ -1,0 +1,2 @@
+#action for dhcp renew
+arca.dbus.dhcpc:CMD_DHCPC_RENEW

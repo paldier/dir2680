@@ -1,0 +1,85 @@
+#!/bin/sh
+
+echo "Bypass arc_nvram" > /dev/console
+exit;
+
+ub_essid=`uboot_env --get --name essid`
+ub_mac=`uboot_env --get --name ethaddr`
+ub_pin=`uboot_env --get --name wps_pin`
+ub_sn=`uboot_env --get --name sn`
+ub_wlkey=`uboot_env --get --name wlkey`
+ub_hw_ver=`uboot_env --get --name hw_version`
+ub_update_bd=`uboot_env --get --name update_bd`
+mptest=`uboot_env --get --name mptest`
+
+bd_essid=`arcbd get essid`
+bd_mac=`arcbd get mac`
+bd_pin=`arcbd get pin`
+bd_sn=`arcbd get sn`
+bd_wlkey=`arcbd get wlkey`
+bd_hw_ver=`arcbd get hw_version`
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		if [ "x$mptest" == "x1" ]; then
+			if [ "x$ub_update_bd" == "x1" ]; then
+				if [ "x$ub_essid" != "x$bd_essid" ]; then
+					arcbd set essid $ub_essid
+				fi
+
+				if [ "x$ub_mac" != "x$bd_mac" ]; then
+					arcbd set mac $ub_mac
+				fi
+
+				if [ "x$ub_pin" != "x$bd_pin" ]; then
+					arcbd set pin $ub_pin
+				fi
+
+				if [ "x$ub_sn" != "x$bd_sn" ]; then
+					arcbd set sn $ub_sn
+				fi
+
+				if [ "x$ub_wlkey" != "x$bd_wlkey" ]; then
+					arcbd set wlkey $ub_wlkey
+				fi
+
+				if [ "x$ub_hw_ver" != "x$bd_hw_ver" ]; then
+					arcbd set hw_version $ub_hw_ver
+				fi
+				uboot_env --set --name update_bd --value 0
+			fi
+		else
+			if [ "x$ub_essid" != "x$bd_essid" ]; then
+				uboot_env --set --name essid --value $bd_essid
+			fi
+
+			if [ "x$ub_mac" != "x$bd_mac" ]; then
+				uboot_env --set --name ethaddr --value $bd_mac
+			fi
+
+			if [ "x$ub_pin" != "x$bd_pin" ]; then
+				uboot_env --set --name wps_pin --value $bd_pin
+			fi
+
+			if [ "x$ub_sn" != "x$bd_sn" ]; then
+				uboot_env --set --name sn --value $bd_sn
+			fi
+
+			if [ "x$ub_wlkey" != "x$bd_wlkey" ]; then
+				uboot_env --set --name wlkey --value $bd_wlkey
+			fi
+
+			if [ "x$ub_hw_ver" != "x$bd_hw_ver" ]; then
+				uboot_env --set --name hw_version --value $bd_hw_ver
+			fi
+		fi
+		if [ ! -f /sbin/arc_fwt ] && [ "x$mptest" = "1" ]; then
+		    uboot_env --set --name mptest --value 0
+		fi
+		;;
+
+	*)
+		echo $0 'boot          - setup nvram'
+		echo $0 'start         - setup nvram'
+		;;
+esac

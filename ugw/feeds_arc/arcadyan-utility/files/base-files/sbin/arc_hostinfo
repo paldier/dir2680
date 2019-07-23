@@ -1,0 +1,22 @@
+#!/bin/sh
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+		echo "localhost" > /proc/sys/kernel/hostname
+		echo "127.0.0.1 localhost" > /etc/hosts
+		;;
+
+	"start" | "CMD_START")
+		echo "localhost" > /proc/sys/kernel/hostname
+		echo "127.0.0.1 localhost" > /etc/hosts
+		;;
+
+	"stop" | "CMD_STOP")
+		;;
+
+	*)
+		echo $0 'boot          - setup host name'
+		echo $0 'start         - setup host name'
+		echo $0 'stop          - do nothing'
+		;;
+esac

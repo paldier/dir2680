@@ -1,0 +1,127 @@
+#!/bin/sh
+
+# Save WPS AP PIN settings
+#
+# Start hostapd with wps_state=1/2 ap_setup_locked=0 config_methods=label
+# Then run hostapd_cli -a /usr/scripts/wps_save to make this script work
+
+get_conf()
+{
+	string=`grep "^\<$1\>" $conf_file | sed 's/^[^=]*=[ ]*//'`
+
+	echo $string
+}
+
+save_settings()
+{
+	conf_file="/etc/hostapd.ssid${1}.conf"
+
+	new_ssid=`get_conf ssid`
+	if [ -n $new_ssid ];then
+		mngcli set ARC_WLAN_24G_SSID_${1}_ESSID="$new_ssid"
+	fi
+
+	new_passphrase=`get_conf wpa_passphrase`
+	if [ "$new_passphrase" != "" ];then
+		mngcli set ARC_WLAN_24G_SSID_${1}_WPA_Passphrase="$new_passphrase"
+	else
+		new_psk=`get_conf wpa_psk`
+		if [ -n $new_psk ];then
+			mngcli set ARC_WLAN_24G_SSID_${1}_WPA_Passphrase="$new_psk"
+		fi
+	fi
+
+	new_security_mode=`get_conf wpa`
+	new_cipher=`get_conf wpa_pairwise`
+	use_tkip=`echo $new_cipher |grep TKIP -c`
+
+	case $new_security_mode in
+		"")
+			mngcli set ARC_WLAN_24G_SSID_${1}_SecurityType="open"
+		;;
+		"1")
+			mngcli set ARC_WLAN_24G_SSID_${1}_SecurityType="wpa"
+			mngcli set ARC_WLAN_24G_SSID_${1}_WPA_Cipher="tkip"
+		;;
+		"2")
+			if [ $use_tkip != "0" ];then
+				# TKIP+CCMP
+				mngcli set ARC_WLAN_24G_SSID_${1}_SecurityType="wpa2"
+				mngcli set ARC_WLAN_24G_SSID_${1}_WPA_Cipher="tkip+ccmp"
+			else
+				# CCMP+CCMP
+				mngcli set ARC_WLAN_24G_SSID_${1}_SecurityType="wpa2"
+				mngcli set ARC_WLAN_24G_SSID_${1}_WPA_Cipher="ccmp"
+			fi
+		;;
+		"3")
+			if [ $use_tkip != "0" ];then
+				# TKIP+CCMP
+				mngcli set ARC_WLAN_24G_SSID_${1}_SecurityType="wpawpa2"
+				mngcli set ARC_WLAN_24G_SSID_${1}_WPA_Cipher="tkip+ccmp"
+			else
+				# CCMP+CCMP
+				mngcli set ARC_WLAN_24G_SSID_${1}_SecurityType="wpawpa2"
+				mngcli set ARC_WLAN_24G_SSID_${1}_WPA_Cipher="ccmp"
+			fi
+		;;
+	esac
+
+	# After receiving WPS-NEW-AP-SETTINGS, wps_state should be set to 2
+	# Since we are running all SSIDs with the same WPS configuration,
+	# we should set change on all SSIDs settings.
+	mngcli set ARC_WLAN_24G_SSID_0_WPS_Unconfigured=0
+	mngcli set ARC_WLAN_24G_SSID_1_WPS_Unconfigured=0
+	mngcli set ARC_WLAN_24G_SSID_2_WPS_Unconfigured=0
+	mngcli set ARC_WLAN_24G_SSID_3_WPS_Unconfigured=0
+	mngcli commit
+
+	mngcli action ui_wps=$1
+}
+
+case $2 in
+	"WPS-NEW-AP-SETTINGS")
+		idx=`echo $1 |sed 's/^wlan0.//'`
+
+		if [ $1 == "wlan0" ];then
+			idx=0
+		fi
+
+		save_settings $idx
+	;;
+	# Set WPS STATUS to interact with GUI
+	#if file /tmp/wps_in_progress doesn't exist, it means 5G module has finish WPS, and we'll be responsible to reset the LED
+	#else we'll remove the file and wait 5G module to set the LED.
+	"WPS-SUCCESS")
+		mngcli set ARC_WLAN_24G_SSID_0_WPS_Status=9
+
+		# If 2.4G WPS is finished, we should notify 5G module to cancel the WPS.
+		# Then we will reset the LED and remove unused file.
+		if [ -e /tmp/wps_in_progress ];then
+			qcsapi_sockrpc --host 1.1.1.2  wps_cancel wifi0
+			rm -f /tmp/wps_in_progress
+		fi
+		rm -f /tmp/wps_led_blink
+		arc_led wlan on
+	
+	;;
+	"WPS-TIMEOUT")
+		mngcli set ARC_WLAN_24G_SSID_0_WPS_Status=7
+
+		if [ -e /tmp/wps_in_progress ];then
+			rm -f /tmp/wps_in_progress
+		fi
+		rm -f /tmp/wps_led_blink
+		arc_led wlan on
+	;;
+	# Terry 20141021, added LED control
+	"WPS-OVERLAP-DETECTED")
+		if [ -e /tmp/wps_in_progress ];then
+			rm -f /tmp/wps_in_progress
+		fi
+		rm -f /tmp/wps_led_blink
+		arc_led wlan on
+	;;
+	*)
+	;;
+esac

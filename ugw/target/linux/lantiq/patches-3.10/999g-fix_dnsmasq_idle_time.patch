@@ -1,0 +1,23 @@
+diff --git a/drivers/net/ppp/ppp_generic.c b/drivers/net/ppp/ppp_generic.c
+--- a/drivers/net/ppp/ppp_generic.c
++++ b/drivers/net/ppp/ppp_generic.c
+@@ -1200,7 +1200,7 @@
+ 		      sk_run_filter(skb, ppp->active_filter) == 0))
+ 		{
+ 			/* Reset idle time, when receive a lan to wan packet*/
+-			if(skb->mark == MARK_LAN2WAN)
++			if(skb->mark & MARK_LAN2WAN)
+ 			{
+ 				if(DST_PORT(skb) == 137 || DST_PORT(skb) == 138 || DST_PORT(skb) == 139 || DST_PORT(skb) == 445)
+ 				{
+@@ -1225,6 +1225,10 @@
+ 						{
+ 							skip = 1;
+ 						}
++						else
++						{
++							ppp->last_xmit = jiffies;
++						}
+ 					}
+ 				}
+ 			}

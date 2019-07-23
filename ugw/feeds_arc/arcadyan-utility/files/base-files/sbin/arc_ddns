@@ -1,0 +1,40 @@
+#!/bin/sh
+
+update_ddns()
+{
+	enable=`mngcli get ARC_DDNS_Enable`
+
+	if [ $enable != '1' ]; then
+		return
+	fi
+
+	service=`mngcli get ARC_DDNS_ServiceName`
+	user=`mngcli get ARC_DDNS_UserName`
+	password=`mngcli get ARC_DDNS_Password`
+	hostname=`mngcli get ARC_DDNS_HostName`
+
+	updatedd -Y $service -- $user:$password $hostname
+
+	mngcli set ARC_DDNS_UpdateStatus="$?"
+
+	# UpdateStatus 
+	# 0 Success
+	# 1 Connection failed
+	# 2 Authentication failed or no host
+	# 3 Wrong usage
+}
+
+case "$1" in
+	"start" | "CMD_START")
+		update_ddns
+		;;
+
+	"stop" | "CMD_STOP")
+		;;
+
+	*)
+		echo Usage:
+		echo $0 start
+		echo $0 stop
+		;;
+esac

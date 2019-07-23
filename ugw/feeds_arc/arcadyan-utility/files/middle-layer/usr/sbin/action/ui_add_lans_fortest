@@ -1,0 +1,29 @@
+#!/bin/bash
+# ui_add_lans_fortest
+# add lans info to arc_lan_table for test
+k=0
+
+for k in $(seq 0 5)
+do
+	brctl delif br-lan$k wlan0
+	brctl delbr br-lan$k
+	brctl addbr br-lan$k
+	brctl addif br-lan$k wlan0
+done
+
+#add arc_wlan_table
+for k in $(seq 0 5) #(( k=1; k<=5; k=k+1 ))
+do
+  abscfg set ARC_WLAN_PF_x_Name $k Wlan$k
+  abscfg set ARC_WLAN_PF_x_SSID $k ARC_AP_1$k
+  abscfg set ARC_WLAN_PF_x_VLAN_Index $k $k
+done
+#add arc_lan_table
+for k in $(seq 0 5) #(( k=1; k<=5; k=k+1 ))
+do
+  abscfg set ARC_LAN_x_Name $k Lan$k
+  abscfg set ARC_LAN_x_Ifname $k br-lan$k
+  abscfg set ARC_LAN_x_3GPPInterworking $k 0
+done
+
+exit 0

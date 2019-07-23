@@ -1,0 +1,91 @@
+params=$@
+#/usr/sbin/saveaction "$0 $@"
+
+echo "[ui_firewall_agent] $@" > /dev/console
+szProfile=`abscfg get_idx_limit ARC_FIREWALL_PF_x_Enable | cut -d"," -f1 | cut -d" " -f5`
+maxLoop=$((szProfile-1))
+for idxPF in $(seq 0 ${maxLoop})
+do
+	isEnabled=`abscfg get ARC_FIREWALL_PF_x_Enable ${idxPF}`
+	if [ ${isEnabled} -eq 1 ]; then
+		szIntf=$((`abscfg get_idx_limit ARC_FIREWALL_PF_x_Intf_y | cut -d"=" -f3`-1))
+		intfs=""
+		# get interface list
+		for idxIntf in $(seq 0 ${szIntf})
+		do
+			intf=`abscfg get ARC_FIREWALL_PF_x_Intf_y ${idxPF} ${idxIntf}`
+			if [ ${intf} -gt -1 ]; then
+				if [ -n "${intfs}" ]; then
+					intfs="${intfs} ${intf}"
+				else
+					intfs="${intfs}${intf}"
+				fi
+			fi
+		done
+
+		#access control rule index in profile
+		szRules=$((`abscfg get_idx_limit ARC_FIREWALL_PF_x_AC_y | cut -d"=" -f3`-1))
+		for idxRule in $(seq 0 ${szRules}):
+		do
+			# get id from profile
+			idRule=`abscfg get ARC_FIREWALL_PF_x_AC_y ${idxPF} ${idxRule}`
+			if [ ${idRule} -gt -1 ]; then
+				##set interface ids
+				idxIntf=0
+				for intf in ${intfs}
+				do
+					abscfg set ARC_FIREWALL_AC_RULE_x_ImInterface_y ${idRule} ${idxIntf} ${intf}
+					idxIntf=$((idxIntf+1))
+				done
+				abscfg set ARC_FIREWALL_AC_RULE_x_ImInterface_y ${idRule} ${idxIntf} -1
+			else
+				break
+			fi
+		done
+		#URL blocking
+		szRules=$((`abscfg get_idx_limit ARC_FIREWALL_PF_x_URL_y | cut -d"=" -f3`-1))
+		for idxRule in $(seq 0 ${szRules}):
+		do
+			# get id from profile
+			idRule=`abscfg get ARC_FIREWALL_PF_x_URL_y ${idxPF} ${idxRule}`
+			if [ ${idRule} -gt -1 ]; then
+				## set interface ids
+				idxIntf=0
+				for intf in ${intfs}
+				do
+					abscfg set ARC_FIREWALL_URL_GRP_x_INTFS_y ${idRule} ${idxIntf} ${intf}
+					idxIntf=$((idxIntf+1))
+				done
+				abscfg set ARC_FIREWALL_URL_GRP_x_INTFS_y ${idRule} ${idxIntf} -1
+			else
+				break
+			fi
+		done
+		#WEB content keyword blocking
+		szRules=$((`abscfg get_idx_limit ARC_FIREWALL_PF_x_KEYWD_y | cut -d"=" -f3`-1))
+		for idxRule in $(seq 0 ${szRules}):
+		do
+			# get id from profile
+			idRule=`abscfg get ARC_FIREWALL_PF_x_KEYWD_y ${idxPF} ${idxRule}`
+			## set interface ids
+			if [ ${idRule} -gt -1 ]; then
+				idxIntf=0
+				for intf in ${intfs}
+				do
+					abscfg set ARC_FIREWALL_KEYWD_GRP_x_INTFS_y ${idRule} ${idxIntf} ${intf}
+					idxIntf=$((idxIntf+1))
+				done
+				abscfg set ARC_FIREWALL_KEYWD_GRP_x_INTFS_y ${idRule} ${idxIntf} -1
+			else
+				break
+			fi
+		done
+
+	fi
+
+done
+
+iptablesrules-agent-main --edit --FW -t access
+firewall_agent "$@"
+
+exit 0

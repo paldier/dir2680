@@ -1,0 +1,161 @@
+#!/bin/sh
+
+#save values
+if [ -n "$DNS1" ]; then
+	if  [ -n "$DNS2" ] && [ $DNS2 != $DNS1 ]; then
+		new_domain_name_servers="$DNS1"" ""$DNS2"
+	else
+		new_domain_name_servers=$DNS1
+	fi
+elif [ -n "$DNS2" ]; then
+	new_domain_name_servers=$DNS2
+else
+	new_domain_name_servers=""
+fi
+
+wan_index=$6
+if [ "$wan_index" = "" ]; then
+	wan_index=0
+fi
+
+dft_wan_idx=`mng_cli get ARC_WAN_DefaultRouteIdx`
+if [ "$dft_wan_idx" = "" ]; then
+	dft_wan_idx=0
+fi
+
+aton()
+{
+	echo $1 | awk '{c=256;split($0,ip,".");print ip[4]+ip[3]*c+ip[2]*c^2}'
+}
+ip4mask=`mng_cli get ARC_LAN_0_IP4_Netmask`
+lan_addr=`mng_cli get ARC_LAN_0_IP4_Addr`
+guest_addr=`mng_cli get ARC_LAN_1_IP4_Addr`
+
+get_ip=$(aton $IPLOCAL)
+lan_netmask=$(aton $ip4mask)
+
+wan_subnet=$((get_ip&lan_netmask))
+
+lan_ip=$(aton $lan_addr)
+guest_ip=$(aton $guest_addr)
+
+lan_subnet=$((lan_ip&lan_netmask))
+guest_subnet=$((guest_ip&lan_netmask))
+
+if [ $ip4mask = "255.255.255.0" ]; then
+	if [ $wan_subnet == $lan_subnet ]; then
+		echo "conflict lan subnet" >/dev/console
+		if [ $lan_addr = "192.168.0.1" ] ; then
+			mng_cli set ARC_LAN_0_IP4_Addr="192.168.100.1"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolStart="192.168.100.100"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolEnd="192.168.100.199"
+		else
+			mng_cli set ARC_LAN_0_IP4_Addr="192.168.0.1"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolStart="192.168.0.100"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolEnd="192.168.0.199"
+		fi
+
+		mng_cli action hnap_router_lanipchange_settings
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=2 eLink=1
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=3 eLink=1
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=4 eLink=1
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=5 eLink=1
+		mng_cli action wan_start
+		mng_cli commit
+		exit
+	else
+		if [ $wan_subnet == $guest_subnet ]; then
+			echo "conflict guest netmask" >/dev/console
+			if [ $guest_addr = "192.168.7.1" ] ; then
+				mng_cli set ARC_LAN_1_IP4_Addr="192.168.107.1"
+				mng_cli set ARC_LAN_1_DHCP4S_PoolStart="192.168.107.100"
+				mng_cli set ARC_LAN_1_DHCP4S_PoolEnd="192.168.107.199"
+			else
+				mng_cli set ARC_LAN_1_IP4_Addr="192.168.7.1"
+				mng_cli set ARC_LAN_1_DHCP4S_PoolStart="192.168.7.100"
+				mng_cli set ARC_LAN_1_DHCP4S_PoolEnd="192.168.7.199"
+			fi
+
+			mng_cli action hnap_router_lanipchange_settings
+			switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=2 eLink=1
+			switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=3 eLink=1
+			switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=4 eLink=1
+			switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=5 eLink=1
+			mng_cli action wan_start
+			mng_cli commit
+			exit
+		fi
+	fi
+else
+	if [ $wan_subnet == $lan_subnet ]; then
+		echo "conflict all ">/dev/console
+		if [ $ip4addr = "192.168.0.1" ] ; then
+			mng_cli set ARC_LAN_0_IP4_Addr="172.16.0.1"
+			mng_cli set ARC_LAN_1_IP4_Addr="172.16.7.1"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolStart="172.16.0.100"
+			mng_cli set ARC_LAN_1_DHCP4S_PoolStart="172.16.7.100"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolEnd="172.16.0.199"
+			mng_cli set ARC_LAN_1_DHCP4S_PoolEnd="172.16.7.199"
+		else
+			mng_cli set ARC_LAN_0_IP4_Addr="192.168.0.1"
+			mng_cli set ARC_LAN_1_IP4_Addr="192.168.7.1"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolStart="192.168.0.199"
+			mng_cli set ARC_LAN_1_DHCP4S_PoolStart="192.168.7.199"
+			mng_cli set ARC_LAN_0_DHCP4S_PoolEnd="192.168.0.199"
+			mng_cli set ARC_LAN_1_DHCP4S_PoolEnd="192.168.7.199"
+		fi
+
+		mng_cli action hnap_router_lanipchange_settings
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=2 eLink=1
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=3 eLink=1
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=4 eLink=1
+		switch_cli GSW_PORT_LINK_CFG_SET dev=0 nPortId=5 eLink=1
+		mng_cli action wan_start
+		mng_cli commit
+		exit
+	fi
+
+fi
+
+mng_cli set ARC_WAN_${wan_index}_PPP_GET_IP4_Addr="$IPLOCAL" set ARC_WAN_${wan_index}_PPP_GET_IP4_Netmask="255.255.255.255" set ARC_WAN_${wan_index}_PPP_GET_IP4_Gateway="$IPREMOTE"  action ""
+if [ "x$MTU" != "x" ]; then
+	mngcli set ARC_WAN_${wan_index}_GET_MTU="$MTU"
+fi
+mng_cli set ARC_WAN_${wan_index}_IP4_DNS="$new_domain_name_servers" set ARC_WAN_${wan_index}_Iface="$IFNAME" action ""
+mng_cli set ARC_WAN_${wan_index}_PPP_Status="Connected"
+lastchange=`cat /proc/uptime | awk '{printf("%d", $1)}'`
+mng_cli set ARC_WAN_${wan_index}_PPP_LastChange=$lastchange
+
+macclone_enable=`mng_cli get ARC_SYS_MACCLONE_Enable`
+wan_type=`mng_cli get ARC_WAN_0_IP4_Proto`
+if [ "$macclone_enable" = "0" ] && [ "$wan_type" != "pptp" ] && [ "$wan_type" != "l2tp" ]; then
+	ppacmd addwan -i $IFNAME
+	echo "ppacmd delwan -i $IFNAME" >> /tmp/wan_inf
+fi
+
+tmp_value=`cat /proc/uptime | cut -d'.' -f1`
+mng_cli tmp_set TMP_WAN_${wan_index}_Connect_Start_Time=$tmp_value
+if [ $wan_index = $dft_wan_idx ]; then
+	#wan_ipv6_proto=`mng_cli get ARC_WAN_${wan_index}_IP6_Proto`
+	#ipv6_dhcpc_en=`mng_cli get ARC_WAN_${wan_index}_IP6_DHCP`
+
+#	if [ $wan_ipv6_proto = "dhcp" ] && [ $ipv6_dhcpc_en = "on" ]; then
+#		dbus-arca-cli --command --dest=arca.dbus.dhcp6c CMD_RESTART
+#	fi
+	
+#	if [ $wan_ipv6_proto = "static" ]; then
+#	   mng_cli action sys_ipv6_wan_done
+#	fi
+
+	mng_cli action wan_done="wan_idx=$wan_index"
+	#arc_led led_blue on
+else
+	mng_cli action wan${wan_index}_done="wan_idx=$wan_index"
+fi
+
+# Velmurugan 11102014> ETB VRX220 LED behavior
+	if [ "x$wan_index" == "x0" ]; then
+		#arc_sm_led stop 6
+		#arc_led internet_g on
+		#arc_tfledd &
+	fi

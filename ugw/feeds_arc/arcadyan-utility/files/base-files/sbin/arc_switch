@@ -1,0 +1,45 @@
+#!/bin/sh
+
+create_node()
+{
+	if [ ! -d /dev/switch_api ]; then
+		mkdir /dev/switch_api
+		mknod /dev/switch_api/0 c 81 0
+		mknod /dev/switch_api/1 c 81 1
+	fi
+}
+
+port_phy_pwron()
+{
+	create_node
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=2 bLinkForce=1 eLink=0
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=3 bLinkForce=1 eLink=0
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=4 bLinkForce=1 eLink=0
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=5 bLinkForce=1 eLink=0
+}
+
+port_phy_pwroff()
+{
+	create_node
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=2 bLinkForce=1 eLink=1
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=3 bLinkForce=1 eLink=1
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=4 bLinkForce=1 eLink=1
+	switch_cli dev=0 IFX_ETHSW_PORT_LINK_CFG_SET nPortId=5 bLinkForce=1 eLink=1
+}
+
+case "$1" in
+	"phyoff" | "CMD_PHY_OFF")
+		port_phy_pwroff
+		;;
+
+	"phyon" | "CMD_PHY_ON")
+		port_phy_pwron
+		;;
+
+	*)
+		echo Usage:
+		echo $0 phyoff
+		echo $0 phyon
+		;;
+esac
+

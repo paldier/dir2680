@@ -1,0 +1,5 @@
+arca.dbus.misc:wlan CMD_STOP
+arca.dbus.hostapd: CMD_STOP
+arca.dbus.misc:sleep 2
+arca.dbus.misc:wlan CMD_START
+arca.dbus.hostapd: CMD_START

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+case "$1" in
+	"CMD_BOOT" | "boot")
+		pc_list_daemon&
+		;;
+	
+	"CMD_START" | "start")
+		killall pc_list_daemon
+		pc_list_daemon&
+		;;
+
+	*)
+		echo $0 'boot          - Load pc_list DAEMON'
+		echo $0 'start         - Reload pc_list DAEMON'
+		;;
+esac

@@ -1,0 +1,25 @@
+#$1
+action="$1"
+
+#restart
+if [ "${action}" = "apply-reboot" ]; then
+	reboot
+else
+	echo "<<<online active process start"
+	files=`find /tmp/configapply/ -name "??-*.init" | sort`
+	for f in $files
+	do
+		if [ -r $f ] && [ -f $f ];then
+			echo $f will be executed by ui_apply_agent
+			sh $f
+		else
+			echo $f execution fail by ui_apply_agent
+		fi
+	done
+	rm -f /tmp/configapply/*
+	rm -f /tmp/config_modified
+	echo ">>>online active process end"
+fi
+#write config
+#mngcli commit
+exit 0

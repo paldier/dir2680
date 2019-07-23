@@ -1,0 +1,1 @@
+arca.dbus.firewall:CMD_RESTART $(1)

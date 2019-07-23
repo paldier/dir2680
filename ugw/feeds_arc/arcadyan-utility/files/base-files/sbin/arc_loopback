@@ -1,0 +1,23 @@
+#!/bin/sh
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+		ifconfig lo 127.0.0.1 netmask 255.0.0.0
+		ifconfig lo up
+		;;
+
+	"start" | "CMD_START")
+		ifconfig lo 127.0.0.1 netmask 255.0.0.0
+		ifconfig lo up
+		;;
+
+	"stop" | "CMD_STOP")
+		ifconfig lo down
+		;;
+
+	*)
+		echo $0 'boot          - setup and start loopback interface'
+		echo $0 'start         - start loopback interface'
+		echo $0 'stop          - stop loopback interface'
+		;;
+esac

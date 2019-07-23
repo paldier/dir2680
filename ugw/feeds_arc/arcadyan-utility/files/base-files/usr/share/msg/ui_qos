@@ -1,0 +1,7 @@
+#action for QoS.asp saving
+
+#arca.dbus.wlan:CMD_WL_QOS
+#arca.dbus.wlan:CMD_RESTART
+arca.dbus.qos:CMD_RESTART
+arca.dbus.firewall:CMD_RESTART qos_mod
+

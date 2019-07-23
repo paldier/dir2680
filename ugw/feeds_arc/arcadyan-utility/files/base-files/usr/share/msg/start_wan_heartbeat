@@ -1,0 +1,2 @@
+arca.dbus.misc:wan CMD_WAN_UPDATE $(1)
+arca.dbus.heartbeat:CMD_STAGE2

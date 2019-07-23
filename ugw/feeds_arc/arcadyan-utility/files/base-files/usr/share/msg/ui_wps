@@ -1,0 +1,2 @@
+arca.dbus.hostapd: CMD_STOP $(1)
+arca.dbus.hostapd: CMD_START $(1)

@@ -1,0 +1,9 @@
+#action for Firewall.asp saving
+arca.dbus.firewall:CMD_RESTART $(1)
+arca.dbus.misc:firewall6 CMD_RESTART
+arca.dbus.misc:sip_alg CMD_RESTART
+arca.dbus.misc:rtsp_alg CMD_RESTART
+arca.dbus.upnp:CMD_WAN_UPDATE
+arca.dbus.ecmh:CMD_RESTART
+#arca.dbus.igmpproxy:CMD_RESTART
+arca.dbus.dnsmasq:CMD_RESTART

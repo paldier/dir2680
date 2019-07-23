@@ -1,0 +1,34 @@
+diff --git a/src/forward.c b/src/forward.c
+index 942b02d..65cc145 100644
+--- a/src/forward.c
++++ b/src/forward.c
+@@ -789,7 +789,8 @@ void reply_query(int fd, int family, time_t now)
+ 
+   /* Note: if we send extra options in the EDNS0 header, we can't recreate
+      the query from the reply. */
+-  if (RCODE(header) == REFUSED &&
++  //if (RCODE(header) == REFUSED &&
++  if ((RCODE(header) == REFUSED || RCODE(header) == NOTIMP) &&
+       forward->forwardall == 0 &&
+       !(forward->flags & FREC_HAS_EXTRADATA))
+     /* for broken servers, attempt to send to another one. */
+@@ -824,7 +825,8 @@ void reply_query(int fd, int family, time_t now)
+   server = forward->sentto;
+   if ((forward->sentto->flags & SERV_TYPE) == 0)
+     {
+-      if (RCODE(header) == REFUSED)
++      //if (RCODE(header) == REFUSED)
++      if (RCODE(header) == REFUSED || RCODE(header) == NOTIMP)
+ 	server = NULL;
+       else
+ 	{
+@@ -855,7 +857,8 @@ void reply_query(int fd, int family, time_t now)
+      had replies from all to avoid filling the forwarding table when
+      everything is broken */
+   if (forward->forwardall == 0 || --forward->forwardall == 1 ||
+-      (RCODE(header) != REFUSED && RCODE(header) != SERVFAIL))
++      //(RCODE(header) != REFUSED && RCODE(header) != SERVFAIL))
++      (RCODE(header) != REFUSED && RCODE(header) != SERVFAIL && RCODE(header) != NOTIMP))
+     {
+       int check_rebind = 0, no_cache_dnssec = 0, cache_secure = 0, bogusanswer = 0;
+ 

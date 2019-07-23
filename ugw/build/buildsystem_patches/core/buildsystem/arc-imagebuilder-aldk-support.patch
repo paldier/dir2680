@@ -1,0 +1,250 @@
+From 8269a729dc9587cd551a3b8d71d0215f51922dc6 Mon Sep 17 00:00:00 2001
+From: Terry Lin <terry_lin@arcadyan.com.tw>
+Date: Tue, 26 Jul 2016 09:04:33 +0800
+Subject: [PATCH] Create ImageBuilder for arc-utility.
+
+---
+ target/imagebuilder/Config.in      |  8 ++++++
+ target/imagebuilder/Makefile       | 41 +++++++++++++++++++++++++++--
+ target/imagebuilder/files/Makefile | 53 ++++++++++++++++++++++++--------------
+ target/toolchain/Config.in         |  8 ++++++
+ target/toolchain/Makefile          |  2 ++
+ 5 files changed, 91 insertions(+), 21 deletions(-)
+
+diff --git a/target/imagebuilder/Config.in b/target/imagebuilder/Config.in
+index 1bc4533..b5241f6 100644
+--- a/target/imagebuilder/Config.in
++++ b/target/imagebuilder/Config.in
+@@ -15,3 +15,11 @@ config IB_STANDALONE
+ 	  Disabling this option will cause the ImageBuilder to embed only
+ 	  toolchain and kmod packages while all other ipk archives will be
+ 	  fetched from online repositories.
++
++config IB_NOTARBALL
++	bool "Bypass ImageBuilder tar ball generation"
++	default n
++	depends on IB
++	help
++	  Enabling this option will bypass the procedure to generate
++	  *.tar.bz2 for ImageBuilder
+diff --git a/target/imagebuilder/Makefile b/target/imagebuilder/Makefile
+index 7f48ed8..47f72e5 100644
+--- a/target/imagebuilder/Makefile
++++ b/target/imagebuilder/Makefile
+@@ -18,13 +18,17 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/$(IB_NAME)
+ IB_KDIR:=$(patsubst $(TOPDIR)/%,$(PKG_BUILD_DIR)/%,$(KERNEL_BUILD_DIR))
+ IB_LDIR:=$(patsubst $(TOPDIR)/%,$(PKG_BUILD_DIR)/%,$(LINUX_DIR))
+ IB_DTSDIR:=$(patsubst $(TOPDIR)/%,$(PKG_BUILD_DIR)/%,$(LINUX_DIR))/arch/$(ARCH)/boot/dts/
++IB_STRIPPED_ROOT_DIR:=$(PKG_BUILD_DIR)/staging_dir/target-$(ARCH)$(ARCH_SUFFIX)_$(LIBC)-$(LIBCV)$(if $(CONFIG_arm),_eabi)_$(CONFIG_BUILD_SUFFIX)/root-lantiq-stripped
++IB_UNSTRIPPED_ROOT_DIR:=$(PKG_BUILD_DIR)/staging_dir/target-$(ARCH)$(ARCH_SUFFIX)_$(LIBC)-$(LIBCV)$(if $(CONFIG_arm),_eabi)_$(CONFIG_BUILD_SUFFIX)/root-lantiq-unstripped
++
+ 
+ all: compile
+ 
+ $(BIN_DIR)/$(IB_NAME).tar.bz2: clean
+ 	rm -rf $(PKG_BUILD_DIR)
+ 	mkdir -p $(IB_KDIR) $(IB_LDIR) $(PKG_BUILD_DIR)/staging_dir/host/lib \
+-		$(PKG_BUILD_DIR)/target $(PKG_BUILD_DIR)/scripts $(IB_DTSDIR)
++		$(PKG_BUILD_DIR)/target $(PKG_BUILD_DIR)/scripts $(IB_DTSDIR) \
++		$(PKG_BUILD_DIR)/ugw
+ 	-cp $(TOPDIR)/.config $(PKG_BUILD_DIR)/.config
+ 	$(CP) \
+ 		$(INCLUDE_DIR) $(SCRIPT_DIR) \
+@@ -33,7 +37,11 @@ $(BIN_DIR)/$(IB_NAME).tar.bz2: clean
+ 		./files/repositories.conf \
+ 		$(TMP_DIR)/.targetinfo \
+ 		$(TMP_DIR)/.packageinfo \
++		$(TOPDIR)/ugw_version \
+ 		$(PKG_BUILD_DIR)/
++	$(CP) \
++		$(TOPDIR)/ugw/ugw_version \
++		$(PKG_BUILD_DIR)/ugw/
+ 
+ ifeq ($(CONFIG_IB_STANDALONE),)
+ 	echo '## Remote package repositories' >> $(PKG_BUILD_DIR)/repositories.conf
+@@ -44,6 +52,34 @@ endif
+ 	echo '## This is the local package repository, do not remove!' >> $(PKG_BUILD_DIR)/repositories.conf
+ 	echo 'src imagebuilder file:packages'                          >> $(PKG_BUILD_DIR)/repositories.conf
+ 
++# Terry 20150521, add missing files for UGW6.1.1
++	(cd $(TOPDIR); $(TAR) cf - staging_dir/host tmp/ifx_config.* \
++		$(subst $(TOPDIR)/,,$(LINUX_DIR)/scripts) \
++		$(subst $(TOPDIR)/,,$(KERNEL_BUILD_DIR)/u-boot-*/tools/mkimage) \
++		$(subst $(TOPDIR)/,,$(KERNEL_BUILD_DIR)/u-boot-*/scripts_platform/pad2align.sh) \
++		$(subst $(TOPDIR)/,,$(LINUX_DIR)/System.map) \
++		$(subst $(TOPDIR)/,,$(STAGING_DIR)/bin) \
++		$(subst $(TOPDIR)/,,$(STAGING_DIR)/firmware) \
++		$(subst $(TOPDIR)/,,$(STAGING_DIR)/host) \
++		$(subst $(TOPDIR)/,,$(STAGING_DIR)/include) \
++		$(subst $(TOPDIR)/,,$(STAGING_DIR)/lib) \
++		$(subst $(TOPDIR)/,,$(STAGING_DIR)/usr) \
++		$(subst $(TOPDIR)/,,$(STAGING_DIR)/pkginfo) \
++		$(subst $(TOPDIR)/,,$(TARGET_IMG_DIR))) | (cd $(PKG_BUILD_DIR); $(TAR) xf -)
++# Terry 20150715 remove /staging_dir/host/bin/python for Popeye's requirement
++	(cd $(PKG_BUILD_DIR); rm -f staging_dir/host/bin/python)
++# Terry 20150603 add kernel header files for UGW-6.1.1 module development
++	(cd $(TOPDIR); find $(subst $(TOPDIR)/,,$(LINUX_DIR)) \
++		-type f \( -name "*.h" -o -name Makefile -o -name Kconfig -o -name "Kbuild*" -o -name ".config" -o -name "Module.*" -o -name Platform -o -name auto.conf \) ! -path "*/.pc/*" -print0 | \
++		$(TAR) cf - --null -T -) | (cd $(PKG_BUILD_DIR); $(TAR) xf -)
++# Terry 20150522, make rootfs to staging in ImageBuilder
++	rm -rf $(IB_UNSTRIPPED_ROOT_DIR) $(IB_STRIPPED_ROOT_DIR)
++	mkdir -p $(IB_UNSTRIPPED_ROOT_DIR) $(IB_STRIPPED_ROOT_DIR)
++	(cd $(TOPDIR)/build_dir/target-$(ARCH)$(ARCH_SUFFIX)_$(LIBC)-$(LIBCV)$(if $(CONFIG_arm),_eabi)_$(CONFIG_BUILD_SUFFIX)/root-lantiq; \
++		$(TAR) cf - .) | (cd $(IB_STRIPPED_ROOT_DIR); $(TAR) xf -)
++	(cd $(TOPDIR)/staging_dir/target-$(ARCH)$(ARCH_SUFFIX)_$(LIBC)-$(LIBCV)$(if $(CONFIG_arm),_eabi)_$(CONFIG_BUILD_SUFFIX)/root-lantiq; \
++		$(TAR) cf - .) | (cd $(IB_UNSTRIPPED_ROOT_DIR); $(TAR) xf -)
++
+ 	$(VERSION_SED) $(PKG_BUILD_DIR)/repositories.conf
+ 
+ ifeq ($(CONFIG_IB_STANDALONE),)
+@@ -56,14 +92,17 @@ else
+ 	$(CP) $(PACKAGE_DIR) $(PKG_BUILD_DIR)/packages
+ endif
+ 
+-	$(CP) $(TOPDIR)/target/linux $(PKG_BUILD_DIR)/target/
++	$(CP) -L $(TOPDIR)/target/linux $(PKG_BUILD_DIR)/target/
++	$(CP) $(TOPDIR)/scripts/ipkg-build $(PKG_BUILD_DIR)/staging_dir/host/bin/.
+ 	if [ -d $(TOPDIR)/staging_dir/host/lib/grub ]; then \
+ 		$(CP) $(TOPDIR)/staging_dir/host/lib/grub/ $(PKG_BUILD_DIR)/staging_dir/host/lib; \
+ 	fi
+ 	rm -rf \
+ 		$(PKG_BUILD_DIR)/target/linux/*/files{,-*} \
+ 		$(PKG_BUILD_DIR)/target/linux/*/patches{,-*}
+-	-cp $(KERNEL_BUILD_DIR)/* $(IB_KDIR)/ # don't copy subdirectories here
++# Terry 20150521, prevent warning for cp command
++#	-cp $(KERNEL_BUILD_DIR)/* $(IB_KDIR)/ # don't copy subdirectories here
++	find $(KERNEL_BUILD_DIR) -maxdepth 1 -type f | xargs -I {} cp {} $(IB_KDIR) # don't copy subdirectories here
+ 	-cp $(LINUX_DIR)/.config $(IB_LDIR)/
+ 	-$(SCRIPT_DIR)/bundle-libraries.sh $(IB_LDIR)/scripts/dtc \
+ 	  $(LINUX_DIR)/scripts/dtc/dtc
+@@ -76,7 +115,9 @@ endif
+ 	find $(STAGING_DIR_HOST)/bin -maxdepth 1 -type f -perm -u=x \
+ 	  | $(XARGS) $(SCRIPT_DIR)/bundle-libraries.sh $(PKG_BUILD_DIR)/staging_dir/host/bin/
+ 	STRIP=sstrip $(SCRIPT_DIR)/rstrip.sh $(PKG_BUILD_DIR)/staging_dir/host/bin/
++ifeq ($(CONFIG_IB_NOTARBALL),)
+ 	$(TAR) -cf - -C $(BUILD_DIR) $(IB_NAME) | bzip2 -c > $@
++endif
+ 
+ download:
+ prepare:
+diff --git a/target/imagebuilder/files/Makefile b/target/imagebuilder/files/Makefile
+index e28660f..6e58d74 100644
+--- a/target/imagebuilder/files/Makefile
++++ b/target/imagebuilder/files/Makefile
+@@ -100,21 +100,22 @@ _call_image:
+ 	echo 'Building images for $(BOARD)$(if $($(USER_PROFILE)_NAME), - $($(USER_PROFILE)_NAME))'
+ 	echo 'Packages: $(BUILD_PACKAGES)'
+ 	echo
+-	rm -rf $(TARGET_DIR)
+-	mkdir -p $(TARGET_DIR) $(BIN_DIR) $(TMP_DIR) $(DL_DIR)
+-	if [ ! -f "$(PACKAGE_DIR)/Packages" ] || [ ! -f "$(PACKAGE_DIR)/Packages.gz" ] || [ "`find $(PACKAGE_DIR) -cnewer $(PACKAGE_DIR)/Packages.gz`" ]; then \
+-		echo "Package list missing or not up-to-date, generating it.";\
+-		$(MAKE) package_index; \
+-	else \
+-		mkdir -p $(TARGET_DIR)/tmp; \
+-		$(OPKG) update || true; \
+-	fi
+-	$(MAKE) package_install
++#	rm -rf $(TARGET_DIR)
++#	mkdir -p $(TARGET_DIR) $(BIN_DIR) $(TMP_DIR) $(DL_DIR)
++#	if [ ! -f "$(PACKAGE_DIR)/Packages" ] || [ ! -f "$(PACKAGE_DIR)/Packages.gz" ] || [ "`find $(PACKAGE_DIR) -cnewer $(PACKAGE_DIR)/Packages.gz`" ]; then \
++#		echo "Package list missing or not up-to-date, generating it.";\
++#		$(MAKE) package_index; \
++#	else \
++#		mkdir -p $(TARGET_DIR)/tmp; \
++#		$(OPKG) update || true; \
++#	fi
++#	$(MAKE) package_install
++	$(MAKE) create_rootfs
+ ifneq ($(USER_FILES),)
+ 	$(MAKE) copy_files
+ endif
+ 	$(MAKE) package_postinst
+-	$(MAKE) build_image
++#	$(MAKE) build_image
+ 
+ package_index: FORCE
+ 	@echo
+@@ -125,6 +126,17 @@ package_index: FORCE
+ 	) >/dev/null 2>/dev/null
+ 	$(OPKG) update || true
+ 
++create_rootfs: FORCE
++	rm -rf $(TARGET_DIR)
++	rm -rf $(STAGING_DIR)/root-lantiq
++	mkdir -p $(TARGET_DIR)
++	mkdir -p $(STAGING_DIR)/root-lantiq
++	(cd $(STAGING_DIR)/root-lantiq-unstripped; \
++		$(TAR) cf - .) | (cd $(STAGING_DIR)/root-lantiq; $(TAR) xf -)
++	(cd $(STAGING_DIR)/root-lantiq-stripped; \
++		$(TAR) cf - .) | (cd $(TARGET_DIR); $(TAR) xf -)
++	rm -rf $(TARGET_DIR)/{CONTROL,stamp}
++
+ package_install: FORCE
+ 	@echo
+ 	@echo Installing packages...
+@@ -145,12 +157,12 @@ package_postinst: FORCE
+ 	@echo
+ 	@echo Activating init scripts
+ 	@mkdir -p $(TARGET_DIR)/etc/rc.d
+-	@( \
+-		cd $(TARGET_DIR); \
+-		for script in ./usr/lib/opkg/info/*.postinst; do \
+-			IPKG_INSTROOT=$(TARGET_DIR) $$(which bash) $$script; \
+-		done || true \
+-	)
++#	@( \
++#		cd $(TARGET_DIR); \
++#		for script in ./usr/lib/opkg/info/*.postinst; do \
++#			IPKG_INSTROOT=$(TARGET_DIR) $$(which bash) $$script; \
++#		done || true \
++#	)
+ 	rm -f $(TARGET_DIR)/usr/lib/opkg/info/*.postinst
+ 	$(if $(CONFIG_CLEAN_IPKG),rm -rf $(TARGET_DIR)/usr/lib/opkg)
+ 
+@@ -161,8 +173,11 @@ build_image: FORCE
+ 		$(if $(USER_PROFILE),PROFILE="$(USER_PROFILE)")
+ 
+ clean:
+-	rm -rf $(TMP_DIR) $(DL_DIR) $(TARGET_DIR) $(BIN_DIR)
+-
++#	rm -rf $(TMP_DIR) $(DL_DIR) $(TARGET_DIR) $(BIN_DIR)
++	rm -rf $(TOPDIR)/tmp $(TARGET_DIR)
++	find $(BIN_DIR) -type f -not -name 'u-boot-nand.bin' -not -name 'gphy_firmware.*' -not -name 'ubootenv.*' | xargs rm -f
++	rm -rf $(TARGET_DIR)
++	rm -rf $(STAGING_DIR)/root-lantiq
+ 
+ info:
+ 	(unset PROFILE FILES PACKAGES MAKEFLAGS; $(MAKE) -s _call_info)
+diff --git a/target/toolchain/Config.in b/target/toolchain/Config.in
+index 5a6ecef..89a0cee 100644
+--- a/target/toolchain/Config.in
++++ b/target/toolchain/Config.in
+@@ -6,3 +6,11 @@ config MAKE_TOOLCHAIN
+ 	  OpenWrt-Toolchain-$(BOARD)-for-$(ARCH)$(ARCH_SUFFIX)-gcc-$(GCCV)$(DIR_SUFFIX).
+ 	  For example, a toolchain for the MIPS architecture might be named
+ 	  OpenWrt-Toolchain-malta-for-mipsel_mips32-gcc-4.8-linaro_uClibc-0.9.33.2.tar.bz2.
++
++config MAKE_TOOLCHAIN_NOTARBALL
++	bool "Bypass Toolchain tar ball generation"
++	default n
++	depends on MAKE_TOOLCHAIN
++	help
++	  Enabling this option will bypass the procedure to generate
++	  OpenWrt-Toolchain-malta-for-mipsel_mips32-gcc-4.8-linaro_uClibc-0.9.33.2.tar.bz2.
+diff --git a/target/toolchain/Makefile b/target/toolchain/Makefile
+index 67c9085..5bd4989 100644
+--- a/target/toolchain/Makefile
++++ b/target/toolchain/Makefile
+@@ -57,9 +57,11 @@ $(BIN_DIR)/$(TOOLCHAIN_NAME).tar.bz2: clean
+ 	find $(TOOLCHAIN_BUILD_DIR) -name .git | $(XARGS) rm -rf
+ 	find $(TOOLCHAIN_BUILD_DIR) -name .svn | $(XARGS) rm -rf
+ 	find $(TOOLCHAIN_BUILD_DIR) -name CVS | $(XARGS) rm -rf
++ifeq ($(CONFIG_MAKE_TOOLCHAIN_NOTARBALL),)
+ 	(cd $(BUILD_DIR); \
+ 		tar cfj $@ $(TOOLCHAIN_NAME); \
+ 	)
++endif
+ 
+ download:
+ prepare:

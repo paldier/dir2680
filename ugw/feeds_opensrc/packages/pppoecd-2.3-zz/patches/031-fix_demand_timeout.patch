@@ -1,0 +1,11 @@
+--- a/pppoecd/auth.c
++++ b/pppoecd/auth.c
+@@ -509,7 +509,7 @@
+ 
+     if (!get_idle_time(0, &idle))
+ 	return;
+-    itime = MIN(idle.xmit_idle, idle.recv_idle);
++    itime = idle.xmit_idle;
+     tlim = idle_time_limit - itime;
+     if (tlim <= 0) {
+ 	/* link is idle: shut it down. */

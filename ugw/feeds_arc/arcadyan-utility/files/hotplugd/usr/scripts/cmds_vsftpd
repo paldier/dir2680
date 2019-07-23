@@ -1,0 +1,3 @@
+#!/bin/sh
+STOP_CMD="arc_usbapp_ftp stop"
+START_CMD="arc_usbapp_ftp start"

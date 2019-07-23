@@ -1,0 +1,15 @@
+diff -ru a/dbus/dbus-sysdeps-unix.c b/dbus/dbus-sysdeps-unix.c
+--- a/dbus/dbus-sysdeps-unix.c	2011-07-29 21:03:47.000000000 +0800
++++ b/dbus/dbus-sysdeps-unix.c	2012-02-28 10:04:47.459549003 +0800
+@@ -301,6 +301,11 @@
+         goto again;
+       else
+         {
++		if(errno == 0)
++		{
++			_dbus_verbose ("Invalid errno(0) value, force it to be EAGAIN\n"); 
++			errno = EAGAIN;
++		}
+           /* put length back (note that this doesn't actually realloc anything) */
+           _dbus_string_set_length (buffer, start);
+           return -1;

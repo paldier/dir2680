@@ -1,0 +1,4 @@
+arca.dbus.misc:airupgrade timesync
+arca.dbus.httpd:CMD_RESTART
+arca.dbus.samba:CMD_RESTART
+arca.dbus.vsftpd:CMD_RESTART

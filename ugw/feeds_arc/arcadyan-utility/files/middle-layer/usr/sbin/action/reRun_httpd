@@ -1,0 +1,11 @@
+tar_pid=$(pidof httpd)
+echo $(pidof httpd) > wifigw.pid
+cat wifigw.pid
+#kill -9 $tar_pid
+kill -9 $(cat wifigw.pid)
+mng_cli set ARC_WAN_0_IP4_Proto=bridge
+mng_cli set ARC_SYS_HTTP_Enable=1
+httpd &
+echo $!
+
+

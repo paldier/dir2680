@@ -1,0 +1,10 @@
+#!/bin/sh
+# If there is not "wanstatus", used arc_wandown to execute message "wan_stop" while LINK_DOWN.
+
+actv_wan=`mng_cli get ARC_WAN_Active`
+for idx in $actv_wan;
+do
+    wan_pam="$wan_pam wan_idx=${idx}"
+done
+
+mng_cli action wan_stop="${wan_pam}"

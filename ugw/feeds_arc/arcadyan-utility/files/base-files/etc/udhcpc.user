@@ -1,0 +1,96 @@
+#!/bin/sh
+
+# 1. udhcpc calls /lib/netifd/dhcp.script first. Then /lib/netifd/dhcp.script will call /etc/udhcpc.user.
+# 2. udhcpc sends reason string as the first argument of /etc/udhcpc.user and prepares some environment variables for /etc/udhcpc.user.
+# 3. Environment list
+#	 The paramaters for enviromental variables are as follows:
+#	 $HOME  - The set $HOME env or "/"
+#	 $PATH  - the set $PATH env or "/bin:/usr/bin:/sbin:/usr/sbin"
+#	 $1  - What action the script should perform
+#	 INTERFACE - The interface section name this was obtained on
+#	 interface - The interface this was obtained on
+#	 ip  - The obtained IP
+#	 siaddr  - The bootp next server option
+#	 sname  - The bootp server name option
+#	 boot_file - The bootp boot file option
+#	 subnet  - The assigend subnet mask
+#	 timezone - Offset in seconds from UTC
+#	 router  - A list of routers
+#	 timesvr  - A list of time servers
+#	 namesvr  - A list of IEN 116 name servers
+#	 dns  - A list of DNS server
+#	 logsvr  - A list of MIT-LCS UDP log servers
+#	 cookiesvr - A list of RFC 865 cookie servers
+#	 lprsvr  - A list of LPR servers
+#	 hostname - The assigned hostname
+#	 bootsize - The length in 512 octect blocks of the bootfile
+#	 domain  - The domain name of the network
+#	 swapsvr  - The IP address of the client's swap server
+#	 rootpath - The path name of the client's root disk
+#	 ipttl  - The TTL to use for this network
+#	 mtu  - The MTU to use for this network
+#	 broadcast - The broadcast address for this network
+#	 ntpsrv  - A list of NTP servers
+#	 wins  - A list of WINS servers
+#	 lease  - The lease time, in seconds
+#	 dhcptype - DHCP message type (safely ignored)
+#	 serverid - The IP of the server
+#	 message  - Reason for a DHCPNAK
+#	 tftp  - The TFTP server name
+#	 bootfile - The bootfile name
+
+default_wan=`abscfg get ARC_WAN_DefaultRouteIdx`
+wan_type=`abscfg get ARC_WAN_Type`
+
+reason=$1
+interface_section=${INTERFACE:0:3}
+tmp_index=`echo ${INTERFACE:3:6} | awk '{printf "%d", $1}'`
+wan_index=${wan_type}" "${tmp_index}
+echo "[udpchc.user] wan_index $wan_index" > /dev/console
+
+echo "[udpchc.user] print input data" > /dev/console
+echo "\@1:$1, reason:$reason, INTERFACE:$INTERFACE, interface:$interface, wan_index:$wan_index, ip:$ip, subnet:$subnet, broadcast:$broadcast, router:$router, dns:$dns, domain:$domain, hostname:$hostname" > /dev/console
+echo "metric:$metric, serverid:$serverid, lease:$lease" > /dev/console
+echo "[udpchc.user] end of print input data" > /dev/console
+
+update_value()
+{
+	abscfg set ARC_WAN_xy_TMP_IP4_Addr ${wan_index} "$ip"
+	abscfg set ARC_WAN_xy_TMP_IP4_Netmask ${wan_index} "$subnet"
+	abscfg set ARC_WAN_xy_TMP_IP4_Gateway ${wan_index} "$router"
+	abscfg set ARC_WAN_xy_TMP_DomainName ${wan_index} "$domain"
+	abscfg set ARC_WAN_xy_TMP_IP4_DHCP_Lease ${wan_index} "$lease"
+	index=0
+	for subdns in $dns; do
+		index=$((index+1))
+		if [ $index -lt 3 ]; then
+			abscfg set ARC_WAN_xy_TMP_IP4_DNS_Runtime${index} ${wan_index} "${subdns}"
+		fi
+	done
+}
+
+clear_value()
+{
+	abscfg set ARC_WAN_xy_TMP_IP4_Addr ${wan_index} "0.0.0.0"
+	abscfg set ARC_WAN_xy_TMP_IP4_Netmask ${wan_index} "0.0.0.0"
+	abscfg set ARC_WAN_xy_TMP_IP4_Gateway ${wan_index} "0.0.0.0" 
+	abscfg set ARC_WAN_xy_TMP_IP4_DNS_Runtime1 ${wan_index} ""
+	abscfg set ARC_WAN_xy_TMP_IP4_DNS_Runtime2 ${wan_index} ""
+	abscfg set ARC_WAN_xy_TMP_IP4_DHCP_Lease ${wan_index} "0"
+}
+
+case $reason in
+	"bound")
+		echo "[udhcpc.user] bound......" > /dev/console
+		update_value
+		;;
+	"renew")
+		echo "[udhcpc.user] renew......" > /dev/console
+		update_value
+		;;
+	"deconfig")
+		echo "[udhcpc.user] deconfig......" > /dev/console
+		clear_value
+		;;
+esac
+

@@ -1,0 +1,253 @@
+#!/bin/sh
+
+debug()
+{
+	echo "   ---> $@"
+}
+
+preset_ipv6_vars()
+{
+	# prevent ipv6 setting
+	wan_ipv6_proto=`mng_cli get ARC_WAN_0_IP6_Proto`
+	if [ $wan_ipv6_proto != "static" ] ; then
+		mng_cli set ARC_LAN_0_IP6_GUAAddr="" set ARC_LAN_0_IP6_GUAPrefix="" set ARC_LAN_0_IP6_GUAPrefixLen="0"
+		mng_cli set ARC_WAN_0_IP6_Addr="" set ARC_WAN_0_IP6_Prefix="" set ARC_WAN_0_IP6_PrefixLen="0" set ARC_WAN_0_IP6_Gateway="" 
+		mng_cli set ARC_WAN_0_IP6_Domain="" set ARC_WAN_0_IP6_DNS_RuntimeList="" set ARC_WAN_0_IP6_DNS_Runtime1="" set ARC_WAN_0_IP6_DNS_Runtime2=""
+		mng_cli set ARC_WAN_0_IP6_PreferredTime="0" set ARC_WAN_0_IP6_ValidTime="0" set ARC_WAN_0_IP6_RenewTime="0" set ARC_WAN_0_IP6_RebindTime="0"
+		mng_cli set ARC_IP6_DelegatePrefix="" set ARC_IP6_DelegatePrefixLen="" set ARC_WAN_0_IP6_SNTP=""
+	fi
+	if [ $wan_ipv6_proto != "tunnel" ] ; then
+		mng_cli set ARC_IP6_TunnelStatus="connecting" set ARC_IP6_6RD_Prefix="" set ARC_IP6_6RD_BorderRelay=""
+	fi
+}
+
+preset_httpd_vars()
+{
+	mng_cli set VAR_WEB_AUTH_EXEMP_LIST=""
+}
+preset_storage_vars()
+{
+	mng_cli set ARC_USB_DISK_Mounted=""
+}
+
+preset_wlan_vars()
+{
+	wlan_commit=0
+	cfg_essid=`mng_cli get ARC_WLAN_24G_SSID_0_DEF_ESSID`
+	if [ "x$cfg_essid" == "xdlink-DEF" ];
+	then
+		band_lst="24G 5G"
+		wlan_commit=1
+		for band in $band_lst
+		do
+			wlkey=`arcbd get wlkey`
+			if [ "x$wlkey" != "x" ]; then
+				mng_cli set ARC_WLAN_${band}_SSID_0_WPA_Passphrase=$wlkey
+			fi
+
+			wlkey_g=`arcbd get wlkey_g`
+			if [ "x$wlkey_g" != "x" ]; then
+				mng_cli set ARC_WLAN_${band}_SSID_1_WPA_Passphrase=$wlkey_g
+			fi
+
+			wps_pin=`arcbd get WPS_PIN`
+			if [ "x$wps_pin" != "x" ]; then
+				mng_cli set ARC_WLAN_${band}_SSID_0_WPS_ExRegistrarPIN=$wps_pin
+			fi
+		done
+
+		# Set default Country Code, Forrest 2018-08-02.
+		cc_2g=`arcbd get CountryCode2G`
+		if [ "x$cc_2g" != "x" ]; then
+			mng_cli set ARC_WLAN_24G_CountryCode=$cc_2g
+		fi
+		cc_5g=`arcbd get CountryCode5G`
+		if [ "x$cc_5g" != "x" ]; then
+			mng_cli set ARC_WLAN_5G_CountryCode=$cc_5g
+		fi
+
+		# Set default admin password, Forrest 2018-05-16.
+		sys_pwd=`arcbd get admin_pwd`
+		FTP_Name=`mng_cli get ARC_USB_FTP_0_ShareName`
+		if [ "x$sys_pwd" != "x" ]; then
+			mng_cli set ARC_SYS_Password=$sys_pwd
+			mng_cli set ARC_USB_FTP_0_UserInfo="$FTP_Name;$sys_pwd;ftp;$FTP_Name;rw"
+			mng_cli set ARC_USB_ACCOUNT_0_Password=$sys_pwd
+		fi
+	fi
+
+	return $wlan_commit
+}
+
+#crazy_liang 2013.1.24: add new variables
+add_new_variables()
+{
+	NEW_VAR_COUNT=0
+
+	# pete  2013-04-16      ticket-462
+        #Description:         
+        #In au-0.5, the file /etc/config/.glbcfg is NOT updated while do the ccfg_set(), or mng_cli set.
+        #It is only be updated while ccfg_commit()/ccfg_backup(), mng_cli commit/mng_cli backup.
+        #To update .glbcfg file, and avoid manipulating .glbcfg file directly,
+        #execute mng_cli backup, then handle the temporary file.
+	tmp_backup_file=/tmp/glbcfg_tmp_backup
+	mng_cli backup $tmp_backup_file
+       
+	#Sort the config files for comparison.
+	if [ $? -ne 0 ]; then
+		#backup failed
+		return
+	else
+		sort $tmp_backup_file | awk -F '=' '{print $1}' > /tmp/glbcfg.sort
+	fi
+	# end 	pete 	2013-04-16
+
+	dos2unix /etc/config/glbcfg.dft
+	sort /etc/config/glbcfg.dft | awk -F '=' '{print $1}' > /tmp/glbcfg.dft.sort
+
+	#Use 'diff' to find the new variables.
+	diff /tmp/glbcfg.sort /tmp/glbcfg.dft.sort | sed -n '/^+[VAR|ARC]/p' | awk -F '+' '{print $2}' > /tmp/glbcfg.new
+
+	#Set the new variables which were found. 
+	while read line
+	do
+		NEW_VAR_COUNT=$(($NEW_VAR_COUNT+1))
+		## -m 1: To skip those duplicated lines and identify parameters with same prefix.
+		line=`grep $line'=' /etc/config/glbcfg.dft -m 1`
+		var=${line%%=*}
+		val=${line#*=}
+		mngcli set $var="$val"
+	done < /tmp/glbcfg.new
+
+	#Commit if there are new variables.
+	if [ $NEW_VAR_COUNT -gt 0 ]; then
+		mngcli commit
+	fi
+
+	#Remove the temprary files.
+	rm -rf $tmp_backup_file /tmp/glbcfg.sort /tmp/glbcfg.dft.sort /tmp/glbcfg.new
+}
+#end crazy_liang 2013.1.24
+
+dftcfg()
+{
+	echo `mngcli dft_get $1|cut -d'=' -f 2`
+}
+
+dftsync()
+{
+	commit=0
+	key=$1
+	dft=`dftcfg $key`
+	val=`mngcli get $key`
+	if [ "x$dft" != "x$val" ]; then
+		echo "  >>> dftsync $key from $val to $dft"
+		mngcli set $key="$dft"
+		commit=1
+	fi
+	return $commit
+}
+
+cfgkeyexist()
+{
+	error=0
+	mngcli get $1 >/dev/null 2>/dev/null && error=1
+	return $error
+}
+
+cfgsync()
+{
+	commit=0
+	[ "x$2" == "x" ] || {
+		key=$1
+		val=`mngcli get $key`
+		chk=$2
+		[ "x$val" == "x$chk" ] || {
+			echo "  >>> cfgsync $key from $val to $chk"
+			mngcli set $key="$chk"
+			commit=1
+		}
+	}
+	return $commit
+}
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		do_commit=0
+
+		# serial number and router name
+		#sn=`arcbd get sn`
+		oui=`arcbd get mac | awk -F: '{print toupper($1$2$3$4$5$6)}'`
+		#routername=$sn-$oui
+		cfgsync ARC_SYS_SerialNum "$oui" || do_commit=1
+		cfgsync ARC_UPNP_SerialNumber "$oui" || do_commit=1
+		#cfgsync ARC_SYS_DeviceName "$routername" || do_commit=1
+		cfgsync ARC_SYS_ManufacturerOUI "$oui" || do_commit=1
+
+		# sync default value
+		dftsync ARC_SYS_FWVersion || do_commit=1
+		dftsync ARC_SYS_FWSubVersion || do_commit=1
+		dftsync ARC_SYS_ModelName || do_commit=1
+		dftsync ARC_UI_Language || do_commit=1 # force to change japanese for webgui
+
+		dftsync ARC_MCU_FWVersion || do_commit=1
+		dftsync ARC_MCU_MD5 || do_commit=1
+
+		# sync current value
+		hw_v=`arcbd get hw_version`
+		cfgsync ARC_SYS_HWVersion "$hw_v" || do_commit=1
+		cfgsync VAR_SYSTEM_HW_VERSION "$hw_v" || do_commit=1
+		cfgsync ARC_SYS_BootVersion "`arc_version get bootcode_ver`" || do_commit=1
+
+		# Set MyDLinkNo
+		mydlinkno=`arcbd get MyDlinkNo`
+		mngcli set ARC_MyDLink_No=$mydlinkno 
+
+		#mptest=`uboot_env --get --name mptest`
+		#if [ "x$mptest" == "x1" ]; then
+		#	preset_wlan_vers
+		#fi
+		preset_wlan_vars
+		[ "x$?" == "x1" ] && do_commit=1
+
+		preset_ipv6_vars
+		preset_httpd_vars
+		preset_storage_vars
+
+		#crazy_liang 2013.1.24: add new variables
+		#add_new_variables
+		arcsync /etc/config/glbcfg.dft
+		#end crazy_liang 2013.1.24
+		
+		#Terry 20140512, add for mptest
+		mptest=`uboot_env --get --name mptest`
+		mng_cli get ARC_LAN_AllEthLan > /dev/null
+		if [ "x$?" == "x255" ]; then
+			if [ "x$mptest" == "x1" ]; then
+				mng_cli set ARC_LAN_AllEthLan=1
+			fi
+		else
+			if [ "x$mptest" == "x0" ]; then
+				mng_cli del ARC_LAN_AllEthLan
+			fi
+		fi
+		#end
+		#JamesPeng, 20140513, for DECT Calibration
+		if [ "x$mptest" == "x1" ]; then
+			mng_cli set ARC_VO_DECT_Enabled=1
+		fi
+		#endif
+
+		if [ "x$do_commit" == "x1" ]; then
+			echo ">>>"
+			echo ">>> mngcli commit!!"
+			echo ">>>"
+			mng_cli commit
+		fi
+		;;
+
+	*)
+		echo $0 'boot          - setup glbcfg'
+		echo $0 'start         - setup glbcfg'
+		;;
+esac

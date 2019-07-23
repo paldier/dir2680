@@ -1,0 +1,32 @@
+#!/bin/sh
+
+abscfg unset ARC_USB_ACCOUNT_TotalUserCount
+abscfg unset ARC_USB_ACCOUNT_x_Name 0 1
+abscfg unset ARC_USB_ACCOUNT_x_Locked 0 1
+abscfg unset ARC_USB_ACCOUNT_x_Group 0 1
+abscfg unset ARC_USB_ACCOUNT_x_Password 0 1
+abscfg unset ARC_USB_ACCOUNT_x_Privilege 0 1
+abscfg unset ARC_USB_ACCOUNT_x_AccountId 0 1
+abscfg unset ARC_USB_ACCOUNT_x_LinuxUid 0 1
+abscfg unset ARC_USB_ACCOUNT_x_HomeDiskSn 0 1
+abscfg unset ARC_USB_ACCOUNT_x_HomeMountPoint 0 1
+abscfg unset ARC_USB_ACCOUNT_x_HomePath 0 1
+abscfg unset ARC_USB_ACCOUNT_x_SAMBA_ShareFolderCount 0 1
+abscfg unset ARC_USB_ACCOUNT_x_SAMBA_y_ShareFolderDiskSn 0 1 0 2
+abscfg unset ARC_USB_ACCOUNT_x_SAMBA_y_ShareFolderMountpoint 0 1 0 2
+abscfg unset ARC_USB_ACCOUNT_x_SAMBA_y_ShareFolderPath 0 1 0 2
+abscfg unset ARC_USB_ACCOUNT_x_SAMBA_y_ShareFolderDisplayName 0 1 0 2
+abscfg unset ARC_USB_ACCOUNT_x_SAMBA_y_ShareFolderReadOnly 0 1 0 2
+abscfg unset ARC_USB_ACCOUNT_x_FTP_HomeDiskSn 0 1
+abscfg unset ARC_USB_ACCOUNT_x_FTP_HomeMountpoint 0 1
+abscfg unset ARC_USB_ACCOUNT_x_FTP_HomePath 0 1
+abscfg unset ARC_USB_ACCOUNT_x_FTP_FtpEnable 0 1
+abscfg unset ARC_USB_ACCOUNT_x_FTP_FtpWanAccess 0 1
+abscfg unset ARC_USB_ACCOUNT_x_FTP_FtpsEnable 0 1 
+abscfg unset ARC_USB_ACCOUNT_x_FTP_FtpsWanAccess 0 1
+
+abscfg unset ARC_USB_SMB_SRVName
+abscfg unset ARC_USB_SMB_Comment
+abscfg unset ARC_USB_SMB_GRPName
+abscfg unset ARC_USB_LPD_Enable
+abscfg unset ARC_USB_LPD_QUEUE_x_Name 0 1

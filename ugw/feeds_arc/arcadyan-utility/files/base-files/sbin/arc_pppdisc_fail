@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Dual sessions has been already checked in wanppp agent
+#AND_TYPE=$(arc_cfg_cli get ARC_PROJ_O2_AccessNetworkDiscoveryType)
+#if [ "$AND_TYPE" = "1" ] || [ "$AND_TYPE" = "3" ]; then
+   mngcli action wan_stop="wan_idx=1"
+   touch /tmp/bsa_migration
+   rm -f /tmp/link_up
+   # Remove interfaces
+   ifconfig nas0 down
+   ifconfig nas1 down
+   ppacmd delwan -i nas0
+   ppacmd delwan -i nas1
+   br2684ctl -k 0
+   br2684ctl -k 1
+   #   
+   mngcli action and_restart
+   mngcli action autowandetect_restart
+#fi

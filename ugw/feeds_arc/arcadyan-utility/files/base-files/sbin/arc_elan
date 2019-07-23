@@ -1,0 +1,29 @@
+#!/bin/sh
+
+lan_iface=`mng_cli get ARC_LAN_0_BridgedIfname`
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		### set hwaddr from board data ###
+		hwaddr=`arcbd get mac`
+		if [ "x$hwaddr" != "x" ]; then
+			ifconfig $lan_iface hw ether $hwaddr
+			mng_cli set ARC_LAN_0_MACaddr=$hwaddr commit
+		fi
+
+		ppacmd addlan -i eth0_1
+		ppacmd addlan -i eth0_2
+		ppacmd addlan -i eth0_3
+		ppacmd addlan -i eth0_4
+
+		;;
+
+	"stop" | "CMD_STOP")
+		;;
+
+	*)
+		echo $0 'boot          - setup and start ethernet interface'
+		echo $0 'start         - start ethernet interface'
+		echo $0 'stop          - stop ethernet interface'
+		;;
+esac

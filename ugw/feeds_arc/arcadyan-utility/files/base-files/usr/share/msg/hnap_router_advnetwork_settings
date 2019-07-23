@@ -1,0 +1,3 @@
+#******** hnap_router_advnetwork_settings action ********
+arca.dbus.upnp:CMD_RESTART
+arca.dbus.misc:mcast CMD_RESTART

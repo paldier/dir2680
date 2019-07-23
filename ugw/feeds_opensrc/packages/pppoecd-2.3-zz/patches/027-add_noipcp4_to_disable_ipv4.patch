@@ -1,0 +1,15 @@
+diff --git a/pppoecd/options.c b/pppoecd/options.c
+index edf1242..388779a 100755
+--- a/pppoecd/options.c
++++ b/pppoecd/options.c
+@@ -199,6 +199,10 @@ parse_args(argc, argv)
+ 	    		{
+ 				ipv6cp_protent.enabled_flag = 0;
+ 	    		}
++	    		if(0 == strcmp(optarg, "noipcp4"))
++	    		{
++				ipcp_protent.enabled_flag = 0;
++	    		}
+ 			break;
+ #endif
+ 		case 'D':

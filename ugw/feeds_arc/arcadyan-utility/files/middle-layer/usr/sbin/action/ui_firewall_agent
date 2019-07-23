@@ -1,0 +1,7 @@
+params=$@
+#/usr/sbin/saveaction "$0 $@"
+
+echo "[ui_firewall_agent] $@" > /dev/console
+firewall_agent "$@"
+
+exit 0

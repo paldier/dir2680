@@ -1,0 +1,110 @@
+# ui_wispr_config
+#
+#  Created on: Oct 1, 2014
+#      Author: ITRI
+#
+#  Note: work for WISPR module, read config value form arc-cfg which set by EMS page
+#		generate config file :wispr.conf
+#		config item: Wispr Host Ip/Location Name/Max Session Time 
+
+#config file to generate
+configFile=/etc/config/wifigw/wispr.conf
+configFileTM=/etc/config/wifigw/tm.conf
+projectRoot=/opt/wifigw/mips64
+binPath=$projectRoot/bin
+scriptPath=$projectRoot/script
+
+#read config data from arc-cfg db by abscfg command
+#ARC_WLAN_WISPR_PF --> ARC_AUTH_WISPRPF, change arc-cfg db item
+portalPage=$(abscfg get ARC_AUTH_WISPRPF_PortalUrl)
+locationName=$(abscfg get ARC_AUTH_WISPRPF_LocationName)
+maxSessTime=$(abscfg get ARC_AUTH_WISPRPF_MaxSessionTime)
+wAuthType=$(abscfg get ARC_AUTH_WISPRPF_LocalAuthFlag)
+externalServer=$(abscfg get ARC_AUTH_WISPRPF_ExternalAAAIP)
+externalSecret=$(abscfg get ARC_AUTH_WISPRPF_ExternalAAASecret)
+
+
+#kill old existed config file
+rm $configFile
+
+#generate new content for config item
+echo  '[WISPR_INFO]' >> $configFile
+echo "addrWeb = $portalPage" >> $configFile
+echo "portWeb = 8080" >> $configFile
+echo "portalPage = http://$portalPage:8081/captivePortalPage/entry.htm" >> $configFile
+echo "location = $locationName" >> $configFile
+echo "maxSessionTime = $maxSessTime" >> $configFile
+#add default for auth config,20150909
+echo "# 0 for local, 1 for PAP, 2 for CHAP" >> $configFile
+echo "wisprAuthType = $wAuthType" >> $configFile
+echo "radiusServerIp = $externalServer" >> $configFile
+echo "secretString = $externalSecret" >> $configFile
+#update config/radiusclient/ radiusclient.conf and servers, according content in wispr.conf
+sh /opt/wifigw/mips64/script/chgRadiusConfig.sh
+
+#list new file content
+cat $configFile
+
+#add by FM, 1040120
+#kill old existed TM config file
+rm $configFileTM
+
+#read config data from arc-cfg db by abscfg command for TM config
+i=0
+vlanIdxList=""
+for i in $(seq 0 16)
+do
+  ssid=$(abscfg get ARC_WLAN_PF_x_SSID $i )
+  if [ "$ssid" != "" ]
+  then
+  	vlanIdx=$(abscfg get ARC_WLAN_PF_x_VLAN_Index $i )
+  	vlanIdxList="$vlanIdxList $vlanIdx"
+  fi
+done
+echo "vlanIdxList = $vlanIdxList"
+
+offLanStr=""
+s2aLanStr=""
+#for k in $(seq 0 5)
+for k in $vlanIdxList 
+do
+  bOff=$(abscfg get ARC_LAN_x_3GPPInterworking $k )
+  if [ "$bOff" == "0" ]
+  then
+  	ifLan=$(abscfg get ARC_LAN_x_Ifname $k )
+  	offLanStr="$offLanStr $ifLan"
+  fi
+  if [ "$bOff" == "1" ]
+  then
+  	ifLan=$(abscfg get ARC_LAN_x_Ifname $k )
+  	s2aLanStr="$s2aLanStr $ifLan"
+  fi
+done
+#generate new content for TM config, tm.conf
+echo "[TM_INFO]" >> $configFileTM
+echo "wisprNicList =$offLanStr" >> $configFileTM
+echo "eapNicList =$s2aLanStr" >> $configFileTM
+#echo "wisprNicList = br-lan1" >> $configFileTM
+#echo "eapNicList = br-lan" >> $configFileTM
+
+
+#sync to arc board setting
+#sync_cfg 0 1
+mng_cli commit
+
+#find out on-going process id, kill it, and restart module
+tar_pid=$(pidof wispr.exe)
+echo $(pidof wispr.exe) > /tmp/wifigw_wispr.pid
+cat /tmp/wifigw_wispr.pid
+#kill -9 $tar_pid
+kill -9 $(cat /tmp/wifigw_wispr.pid)
+cd $binPath/src
+./wispr.exe -f /etc/config/wifigw &
+
+cd $scriptPath
+sh start_tm.sh /etc/config/wifigw
+
+echo $!
+
+
+exit 0

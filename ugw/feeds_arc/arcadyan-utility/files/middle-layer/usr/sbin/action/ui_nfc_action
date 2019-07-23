@@ -1,0 +1,6 @@
+params=$@
+
+echo "[nfc_agent_test] $@" > /dev/console
+nfc-agent "$@"
+
+exit 0

@@ -1,0 +1,2 @@
+#action for dhcp renew
+arca.dbus.v6rd:CMD_RECONNECT

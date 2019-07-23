@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# 2017-11-14, Ten Zheng, Add for D-Link factory_reset command.
+
+mngcli action /usr/share/msg/ui_factory_defaults

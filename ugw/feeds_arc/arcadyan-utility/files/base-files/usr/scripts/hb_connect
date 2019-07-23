@@ -1,0 +1,11 @@
+#!/bin/sh
+
+wan_ipaddr=`mng_cli get ARC_WAN_0_IP4_Addr`
+wan_ifname=`mng_cli get ARC_WAN_0_Ifname`
+
+mng_cli action wan_done
+
+mng_cli set ARC_WAN_0_PPP_Status="Connected" action ""
+
+#iptables -I INPUT -d $wan_ipaddr -i $wan_ifname -p udp --dport 5050 -j ACCEPT
+

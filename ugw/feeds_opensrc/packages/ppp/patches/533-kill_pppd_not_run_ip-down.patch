@@ -1,0 +1,12 @@
+--- a/pppd/ipcp.c
++++ b/pppd/ipcp.c
+@@ -2004,7 +2004,8 @@
+     /* Execute the ip-down script */
+     if (ipcp_script_state == s_up && ipcp_script_pid == 0) {
+ 	ipcp_script_state = s_down;
+-	ipcp_script(path_ipdown, 0);
++	if(status != EXIT_USER_REQUEST)
++		ipcp_script(path_ipdown, 0);
+     }
+ }
+ 

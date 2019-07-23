@@ -1,0 +1,10 @@
+#!/bin/sh
+
+[ "${ACTION}" = "pressed" ] || exit 0
+
+. /lib/functions.sh
+
+echo "$BUTTON pressed" > /dev/console
+sip_config DECT_Page 6
+
+return 0

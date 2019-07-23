@@ -1,0 +1,520 @@
+diff --git a/package/libs/libjson-c/Makefile b/package/libs/libjson-c/Makefile
+index c781f42..3224c2e 100644
+--- a/package/libs/libjson-c/Makefile
++++ b/package/libs/libjson-c/Makefile
+@@ -8,12 +8,12 @@
+ include $(TOPDIR)/rules.mk
+ 
+ PKG_NAME:=json-c
+-PKG_VERSION:=0.12
++PKG_VERSION:=0.12.1
+ PKG_RELEASE:=1
+ 
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+ PKG_SOURCE_URL:=https://s3.amazonaws.com/json-c_releases/releases/
+-PKG_MD5SUM:=3ca4bbb881dfc4017e8021b5e0a8c491
++PKG_MD5SUM:=55f7853f7d8cf664554ce3fa71bf1c7d
+ 
+ PKG_LICENSE:=MIT
+ PKG_LICENSE_FILES:=COPYING
+diff --git a/package/libs/libjson-c/patches/001-backport_compile_fix.patch b/package/libs/libjson-c/patches/001-backport_compile_fix.patch
+deleted file mode 100644
+index e83f5d2..0000000
+--- a/package/libs/libjson-c/patches/001-backport_compile_fix.patch
++++ /dev/null
+@@ -1,23 +0,0 @@
+-commit 3859e99f50abe11a8dade28efa9ea3d99dfaac11
+-Author: Petar Koretić <petar.koretic@gmail.com>
+-Date:   Fri Apr 11 10:03:40 2014 +0200
+-
+-    Remove unused variable 'size'
+-
+-diff --git a/json_tokener.c b/json_tokener.c
+-index 19de8ef..9a76293 100644
+---- a/json_tokener.c
+-+++ b/json_tokener.c
+-@@ -352,12 +352,10 @@ struct json_object* json_tokener_parse_ex(struct json_tokener *tok,
+- 
+-     case json_tokener_state_inf: /* aka starts with 'i' */
+-       {
+--	int size;
+- 	int size_inf;
+- 	int is_negative = 0;
+- 
+- 	printbuf_memappend_fast(tok->pb, &c, 1);
+--	size = json_min(tok->st_pos+1, json_null_str_len);
+- 	size_inf = json_min(tok->st_pos+1, json_inf_str_len);
+- 	char *infbuf = tok->pb->buf;
+- 	if (*infbuf == '-')
+diff --git a/package/network/utils/curl/Makefile b/package/network/utils/curl/Makefile
+index 7f6d355..b4e497c 100644
+--- a/package/network/utils/curl/Makefile
++++ b/package/network/utils/curl/Makefile
+@@ -8,7 +8,7 @@
+ include $(TOPDIR)/rules.mk
+ 
+ PKG_NAME:=curl
+-PKG_VERSION:=7.40.0
++PKG_VERSION:=7.48.0
+ PKG_RELEASE:=3
+ 
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
+@@ -18,7 +18,7 @@ PKG_SOURCE_URL:=http://curl.haxx.se/download/ \
+ 	ftp://ftp.planetmirror.com/pub/curl/ \
+ 	http://www.mirrormonster.com/curl/download/ \
+ 	http://curl.mirrors.cyberservers.net/download/
+-PKG_MD5SUM:=8d30594212e65657a5c32030f0998fa9
++PKG_MD5SUM:=d42e0fc34a5cace5739631cc040974fe
+ 
+ PKG_LICENSE:=MIT
+ PKG_LICENSE_FILES:=COPYING
+diff --git a/package/network/utils/curl/patches/010-CVE-2015-3143.patch b/package/network/utils/curl/patches/010-CVE-2015-3143.patch
+deleted file mode 100644
+index 697c9c9..0000000
+--- a/package/network/utils/curl/patches/010-CVE-2015-3143.patch
++++ /dev/null
+@@ -1,28 +0,0 @@
+-From d7d1bc8f08eea1a85ab0d794bc1561659462d937 Mon Sep 17 00:00:00 2001
+-From: Daniel Stenberg <daniel@haxx.se>
+-Date: Thu, 16 Apr 2015 13:26:46 +0200
+-Subject: [PATCH] ConnectionExists: for NTLM re-use, require credentials to
+- match
+-
+-CVE-2015-3143
+-
+-Bug: http://curl.haxx.se/docs/adv_20150422A.html
+-Reported-by: Paras Sethia
+----
+- lib/url.c | 2 +-
+- 1 file changed, 1 insertion(+), 1 deletion(-)
+-
+---- a/lib/url.c
+-+++ b/lib/url.c
+-@@ -3184,7 +3184,11 @@ ConnectionExists(struct SessionHandle *d
+-       }
+- 
+-       if((!(needle->handler->flags & PROTOPT_CREDSPERREQUEST)) ||
+-+#if defined(USE_NTLM)
+-+         (wantNTLMhttp || check->ntlm.state != NTLMSTATE_NONE)) {
+-+#else
+-          wantNTLMhttp) {
+-+#endif
+-         /* This protocol requires credentials per connection or is HTTP+NTLM,
+-            so verify that we're using the same name and password as well */
+-         if(!strequal(needle->user, check->user) ||
+diff --git a/package/network/utils/curl/patches/011-CVE-2015-3144.patch b/package/network/utils/curl/patches/011-CVE-2015-3144.patch
+deleted file mode 100644
+index 7da9489..0000000
+--- a/package/network/utils/curl/patches/011-CVE-2015-3144.patch
++++ /dev/null
+@@ -1,32 +0,0 @@
+-From 6218ded6001ea330e589f92b6b2fa12777752b5d Mon Sep 17 00:00:00 2001
+-From: Daniel Stenberg <daniel@haxx.se>
+-Date: Thu, 16 Apr 2015 23:52:04 +0200
+-Subject: [PATCH] fix_hostname: zero length host name caused -1 index offset
+-MIME-Version: 1.0
+-Content-Type: text/plain; charset=UTF-8
+-Content-Transfer-Encoding: 8bit
+-
+-If a URL is given with a zero-length host name, like in "http://:80" or
+-just ":80", `fix_hostname()` will index the host name pointer with a -1
+-offset (as it blindly assumes a non-zero length) and both read and
+-assign that address.
+-
+-CVE-2015-3144
+-
+-Bug: http://curl.haxx.se/docs/adv_20150422D.html
+-Reported-by: Hanno Böck
+----
+- lib/url.c | 2 +-
+- 1 file changed, 1 insertion(+), 1 deletion(-)
+-
+---- a/lib/url.c
+-+++ b/lib/url.c
+-@@ -3606,7 +3606,7 @@ static void fix_hostname(struct SessionH
+-   host->dispname = host->name;
+- 
+-   len = strlen(host->name);
+--  if(host->name[len-1] == '.')
+-+  if(len && (host->name[len-1] == '.'))
+-     /* strip off a single trailing dot if present, primarily for SNI but
+-        there's no use for it */
+-     host->name[len-1]=0;
+diff --git a/package/network/utils/curl/patches/012-CVE-2015-3145.patch b/package/network/utils/curl/patches/012-CVE-2015-3145.patch
+deleted file mode 100644
+index c7ecbe9..0000000
+--- a/package/network/utils/curl/patches/012-CVE-2015-3145.patch
++++ /dev/null
+@@ -1,53 +0,0 @@
+-From ea595c516bc936a514753597aa6c59fd6eb0765e Mon Sep 17 00:00:00 2001
+-From: Daniel Stenberg <daniel@haxx.se>
+-Date: Thu, 16 Apr 2015 16:37:40 +0200
+-Subject: [PATCH] cookie: cookie parser out of boundary memory access
+-MIME-Version: 1.0
+-Content-Type: text/plain; charset=UTF-8
+-Content-Transfer-Encoding: 8bit
+-
+-The internal libcurl function called sanitize_cookie_path() that cleans
+-up the path element as given to it from a remote site or when read from
+-a file, did not properly validate the input. If given a path that
+-consisted of a single double-quote, libcurl would index a newly
+-allocated memory area with index -1 and assign a zero to it, thus
+-destroying heap memory it wasn't supposed to.
+-
+-CVE-2015-3145
+-
+-Bug: http://curl.haxx.se/docs/adv_20150422C.html
+-Reported-by: Hanno Böck
+----
+- lib/cookie.c | 12 +++++++-----
+- 1 file changed, 7 insertions(+), 5 deletions(-)
+-
+---- a/lib/cookie.c
+-+++ b/lib/cookie.c
+-@@ -236,11 +236,14 @@ static char *sanitize_cookie_path(const
+-     return NULL;
+- 
+-   /* some stupid site sends path attribute with '"'. */
+-+  len = strlen(new_path);
+-   if(new_path[0] == '\"') {
+--    memmove((void *)new_path, (const void *)(new_path + 1), strlen(new_path));
+-+    memmove((void *)new_path, (const void *)(new_path + 1), len);
+-+    len--;
+-   }
+--  if(new_path[strlen(new_path) - 1] == '\"') {
+--    new_path[strlen(new_path) - 1] = 0x0;
+-+  if(len && (new_path[len - 1] == '\"')) {
+-+    new_path[len - 1] = 0x0;
+-+    len--;
+-   }
+- 
+-   /* RFC6265 5.2.4 The Path Attribute */
+-@@ -252,8 +255,7 @@ static char *sanitize_cookie_path(const
+-   }
+- 
+-   /* convert /hoge/ to /hoge */
+--  len = strlen(new_path);
+--  if(1 < len && new_path[len - 1] == '/') {
+-+  if(len && new_path[len - 1] == '/') {
+-     new_path[len - 1] = 0x0;
+-   }
+- 
+diff --git a/package/network/utils/curl/patches/013-CVE-2015-3148.patch b/package/network/utils/curl/patches/013-CVE-2015-3148.patch
+deleted file mode 100644
+index ed52160..0000000
+--- a/package/network/utils/curl/patches/013-CVE-2015-3148.patch
++++ /dev/null
+@@ -1,37 +0,0 @@
+-From 6abfb512ed22c2de891a4398616d81a2a0690b5a Mon Sep 17 00:00:00 2001
+-From: Daniel Stenberg <daniel@haxx.se>
+-Date: Sat, 18 Apr 2015 23:50:16 +0200
+-Subject: [PATCH] http_done: close Negotiate connections when done
+-
+-When doing HTTP requests Negotiate authenticated, the entire connnection
+-may become authenticated and not just the specific HTTP request which is
+-otherwise how HTTP works, as Negotiate can basically use NTLM under the
+-hood. curl was not adhering to this fact but would assume that such
+-requests would also be authenticated per request.
+-
+-CVE-2015-3148
+-
+-Bug: http://curl.haxx.se/docs/adv_20150422B.html
+-Reported-by: Isaac Boukris
+----
+- lib/http.c | 8 +++++++-
+- 1 file changed, 7 insertions(+), 1 deletion(-)
+-
+---- a/lib/http.c
+-+++ b/lib/http.c
+-@@ -1493,8 +1493,14 @@ CURLcode Curl_http_done(struct connectda
+- 
+- #ifdef USE_SPNEGO
+-   if(data->state.proxyneg.state == GSS_AUTHSENT ||
+--      data->state.negotiate.state == GSS_AUTHSENT)
+-+      data->state.negotiate.state == GSS_AUTHSENT) {
+-+    /* add forbid re-use if http-code != 401 as a WA
+-+     * only needed for 401 that failed handling
+-+     * otherwie state will be RECV with current code */
+-+    if((data->req.httpcode != 401) && (data->req.httpcode != 407))
+-+      connclose(conn, "Negotiate transfer completed");
+-     Curl_cleanup_negotiate(data);
+-+  }
+- #endif
+- 
+-   /* set the proper values (possibly modified on POST) */
+diff --git a/package/network/utils/curl/patches/014-CVE-2015-3153.patch b/package/network/utils/curl/patches/014-CVE-2015-3153.patch
+deleted file mode 100644
+index f6d37d4..0000000
+--- a/package/network/utils/curl/patches/014-CVE-2015-3153.patch
++++ /dev/null
+@@ -1,95 +0,0 @@
+-From 69a2e8d7ec581695a62527cb2252e7350f314ffa Mon Sep 17 00:00:00 2001
+-From: Daniel Stenberg <daniel@haxx.se>
+-Date: Thu, 23 Apr 2015 15:58:21 +0200
+-Subject: [PATCH] CURLOPT_HEADEROPT: default to separate
+-
+-Make the HTTP headers separated by default for improved security and
+-reduced risk for information leakage.
+-
+-Bug: http://curl.haxx.se/docs/adv_20150429.html
+-Reported-by: Yehezkel Horowitz, Oren Souroujon
+----
+- docs/libcurl/opts/CURLOPT_HEADEROPT.3 | 12 ++++++------
+- lib/url.c                             |  1 +
+- tests/data/test1527                   |  2 +-
+- tests/data/test287                    |  2 +-
+- tests/libtest/lib1527.c               |  1 +
+- 5 files changed, 10 insertions(+), 8 deletions(-)
+-
+---- a/docs/libcurl/opts/CURLOPT_HEADEROPT.3
+-+++ b/docs/libcurl/opts/CURLOPT_HEADEROPT.3
+-@@ -5,7 +5,7 @@
+- .\" *                            | (__| |_| |  _ <| |___
+- .\" *                             \___|\___/|_| \_\_____|
+- .\" *
+--.\" * Copyright (C) 1998 - 2014, Daniel Stenberg, <daniel@haxx.se>, et al.
+-+.\" * Copyright (C) 1998 - 2015, Daniel Stenberg, <daniel@haxx.se>, et al.
+- .\" *
+- .\" * This software is licensed as described in the file COPYING, which
+- .\" * you should have received as part of this distribution. The terms
+-@@ -31,10 +31,10 @@ CURLcode curl_easy_setopt(CURL *handle,
+- Pass a long that is a bitmask of options of how to deal with headers. The two
+- mutually exclusive options are:
+- 
+--\fBCURLHEADER_UNIFIED\fP - keep working as before. This means
+--\fICURLOPT_HTTPHEADER(3)\fP headers will be used in requests both to servers
+--and proxies. With this option enabled, \fICURLOPT_PROXYHEADER(3)\fP will not
+--have any effect.
+-+\fBCURLHEADER_UNIFIED\fP - the headers specified in
+-+\fICURLOPT_HTTPHEADER(3)\fP will be used in requests both to servers and
+-+proxies. With this option enabled, \fICURLOPT_PROXYHEADER(3)\fP will not have
+-+any effect.
+- 
+- \fBCURLHEADER_SEPARATE\fP - makes \fICURLOPT_HTTPHEADER(3)\fP headers only get
+- sent to a server and not to a proxy. Proxy headers must be set with
+-@@ -44,7 +44,7 @@ headers. When doing CONNECT, libcurl wil
+- headers only to the proxy and then \fICURLOPT_HTTPHEADER(3)\fP headers only to
+- the server.
+- .SH DEFAULT
+--CURLHEADER_UNIFIED
+-+CURLHEADER_SEPARATE (changed in 7.42.1, ased CURLHEADER_UNIFIED before then)
+- .SH PROTOCOLS
+- HTTP
+- .SH EXAMPLE
+---- a/lib/url.c
+-+++ b/lib/url.c
+-@@ -605,6 +605,7 @@ CURLcode Curl_init_userdefined(struct Us
+-   set->ssl_enable_alpn = TRUE;
+- 
+-   set->expect_100_timeout = 1000L; /* Wait for a second by default. */
+-+  set->sep_headers = TRUE; /* separated header lists by default */
+-   return result;
+- }
+- 
+---- a/tests/data/test1527
+-+++ b/tests/data/test1527
+-@@ -45,7 +45,7 @@ http-proxy
+- lib1527
+- </tool>
+-  <name>
+--Check same headers are generated without CURLOPT_PROXYHEADER
+-+Check same headers are generated with CURLOPT_HEADEROPT == CURLHEADER_UNIFIED
+-  </name>
+-  <command>
+-  http://the.old.moo.1527:%HTTPPORT/1527 %HOSTIP:%PROXYPORT
+---- a/tests/data/test287
+-+++ b/tests/data/test287
+-@@ -28,7 +28,7 @@ http
+- HTTP proxy CONNECT with custom User-Agent header
+-  </name>
+-  <command>
+--http://test.remote.example.com.287:%HTTPPORT/path/287 -H "User-Agent: looser/2007" --proxy http://%HOSTIP:%HTTPPORT --proxytunnel
+-+http://test.remote.example.com.287:%HTTPPORT/path/287 -H "User-Agent: looser/2015" --proxy http://%HOSTIP:%HTTPPORT --proxytunnel --proxy-header "User-Agent: looser/2007"
+- </command>
+- </client>
+- 
+---- a/tests/libtest/lib1527.c
+-+++ b/tests/libtest/lib1527.c
+-@@ -83,6 +83,7 @@ int test(char *URL)
+-   test_setopt(curl, CURLOPT_READFUNCTION, read_callback);
+-   test_setopt(curl, CURLOPT_HTTPPROXYTUNNEL, 1L);
+-   test_setopt(curl, CURLOPT_INFILESIZE, strlen(data));
+-+  test_setopt(curl, CURLOPT_HEADEROPT, CURLHEADER_UNIFIED);
+- 
+-   res = curl_easy_perform(curl);
+- 
+diff --git a/package/network/utils/curl/patches/015-CVE-2015-3236.patch b/package/network/utils/curl/patches/015-CVE-2015-3236.patch
+deleted file mode 100644
+index 720fb94..0000000
+--- a/package/network/utils/curl/patches/015-CVE-2015-3236.patch
++++ /dev/null
+@@ -1,42 +0,0 @@
+-From e6d7c30734487246e83b95520e81bc1ccf0a2376 Mon Sep 17 00:00:00 2001
+-From: Kamil Dudka <kdudka@redhat.com>
+-Date: Thu, 28 May 2015 20:04:35 +0200
+-Subject: [PATCH] http: do not leak basic auth credentials on re-used
+- connections
+-
+-CVE-2015-3236
+-
+-This partially reverts commit curl-7_39_0-237-g87c4abb
+-
+-Bug: http://curl.haxx.se/docs/adv_20150617A.html
+----
+- lib/http.c | 16 ++++------------
+- 1 file changed, 4 insertions(+), 12 deletions(-)
+-
+---- a/lib/http.c
+-+++ b/lib/http.c
+-@@ -2333,20 +2333,12 @@ CURLcode Curl_http(struct connectdata *c
+-                      te
+-       );
+- 
+--  /*
+--   * Free userpwd for Negotiate/NTLM. Cannot reuse as it is associated with
+--   * the connection and shouldn't be repeated over it either.
+--   */
+--  switch (data->state.authhost.picked) {
+--  case CURLAUTH_NEGOTIATE:
+--  case CURLAUTH_NTLM:
+--  case CURLAUTH_NTLM_WB:
+--    Curl_safefree(conn->allocptr.userpwd);
+--    break;
+--  }
+-+  /* clear userpwd to avoid re-using credentials from re-used connections */
+-+  Curl_safefree(conn->allocptr.userpwd);
+- 
+-   /*
+--   * Same for proxyuserpwd
+-+   * Free proxyuserpwd for Negotiate/NTLM. Cannot reuse as it is associated
+-+   * with the connection and shouldn't be repeated over it either.
+-    */
+-   switch (data->state.authproxy.picked) {
+-   case CURLAUTH_NEGOTIATE:
+diff --git a/package/network/utils/curl/patches/016-CVE-2015-3237.patch b/package/network/utils/curl/patches/016-CVE-2015-3237.patch
+deleted file mode 100644
+index 6942a04..0000000
+--- a/package/network/utils/curl/patches/016-CVE-2015-3237.patch
++++ /dev/null
+@@ -1,35 +0,0 @@
+-From d2f1a8bdce9d77a277d05adae025d369c1bdd9e6 Mon Sep 17 00:00:00 2001
+-From: Daniel Stenberg <daniel@haxx.se>
+-Date: Fri, 22 May 2015 10:28:21 +0200
+-Subject: [PATCH] SMB: rangecheck values read off incoming packet
+-
+-CVE-2015-3237
+-
+-Detected by Coverity. CID 1299430.
+-
+-Bug: http://curl.haxx.se/docs/adv_20150617B.html
+----
+- lib/smb.c | 12 +++++++++---
+- 1 file changed, 9 insertions(+), 3 deletions(-)
+-
+---- a/lib/smb.c
+-+++ b/lib/smb.c
+-@@ -783,9 +783,15 @@ static CURLcode smb_request_state(struct
+-     off = Curl_read16_le(((unsigned char *) msg) +
+-                          sizeof(struct smb_header) + 13);
+-     if(len > 0) {
+--      result = Curl_client_write(conn, CLIENTWRITE_BODY,
+--                                 (char *)msg + off + sizeof(unsigned int),
+--                                 len);
+-+      struct smb_conn *smbc = &conn->proto.smbc;
+-+      if(off + sizeof(unsigned int) + len > smbc->got) {
+-+        failf(conn->data, "Invalid input packet");
+-+        result = CURLE_RECV_ERROR;
+-+      }
+-+      else
+-+        result = Curl_client_write(conn, CLIENTWRITE_BODY,
+-+                                   (char *)msg + off + sizeof(unsigned int),
+-+                                   len);
+-       if(result) {
+-         req->result = result;
+-         next_state = SMB_CLOSE;
+diff --git a/package/network/utils/curl/patches/200-no_docs_tests.patch b/package/network/utils/curl/patches/200-no_docs_tests.patch
+index 2845577..132a7db 100644
+--- a/package/network/utils/curl/patches/200-no_docs_tests.patch
++++ b/package/network/utils/curl/patches/200-no_docs_tests.patch
+@@ -1,20 +1,24 @@
++diff --git a/Makefile.am b/Makefile.am
++index 61cc5ec..4571801 100644
+ --- a/Makefile.am
+ +++ b/Makefile.am
+-@@ -129,7 +129,7 @@ CLEANFILES = $(VC6_LIBDSP) $(VC6_SRCDSP)
++@@ -150,7 +150,7 @@ CLEANFILES = $(VC6_LIBDSP) $(VC6_SRCDSP) $(VC7_LIBVCPROJ) $(VC7_SRCVCPROJ)	\
+  bin_SCRIPTS = curl-config
+  
+- SUBDIRS = lib src include
++ SUBDIRS = lib src include scripts
+ -DIST_SUBDIRS = $(SUBDIRS) tests packages docs
+ +DIST_SUBDIRS = $(SUBDIRS) packages
+  
+  pkgconfigdir = $(libdir)/pkgconfig
+  pkgconfig_DATA = libcurl.pc
++diff --git a/Makefile.in b/Makefile.in
++index 509d0db..8fe869a 100644
+ --- a/Makefile.in
+ +++ b/Makefile.in
+-@@ -577,7 +577,7 @@ CLEANFILES = $(VC6_LIBDSP) $(VC6_SRCDSP)
++@@ -611,7 +611,7 @@ CLEANFILES = $(VC6_LIBDSP) $(VC6_SRCDSP) $(VC7_LIBVCPROJ) $(VC7_SRCVCPROJ)	\
+  
+  bin_SCRIPTS = curl-config
+- SUBDIRS = lib src include
++ SUBDIRS = lib src include scripts
+ -DIST_SUBDIRS = $(SUBDIRS) tests packages docs
+ +DIST_SUBDIRS = $(SUBDIRS) packages
+  pkgconfigdir = $(libdir)/pkgconfig
+diff --git a/package/network/utils/curl/patches/300-fix-disable-crypto-auth.patch b/package/network/utils/curl/patches/300-fix-disable-crypto-auth.patch
+index 3f88861..7e3f243 100644
+--- a/package/network/utils/curl/patches/300-fix-disable-crypto-auth.patch
++++ b/package/network/utils/curl/patches/300-fix-disable-crypto-auth.patch
+@@ -1,6 +1,8 @@
++diff --git a/lib/curl_ntlm_msgs.c b/lib/curl_ntlm_msgs.c
++index fc95472..6ac98d3 100644
+ --- a/lib/curl_ntlm_msgs.c
+ +++ b/lib/curl_ntlm_msgs.c
+-@@ -571,7 +571,7 @@ CURLcode Curl_sasl_create_ntlm_type3_mes
++@@ -573,7 +573,7 @@ CURLcode Curl_sasl_create_ntlm_type3_message(struct SessionHandle *data,
+    else
+  #endif
+  
+@@ -9,11 +11,13 @@
+    /* We don't support NTLM2 if we don't have USE_NTRESPONSES */
+    if(ntlm->flags & NTLMFLAG_NEGOTIATE_NTLM2_KEY) {
+      unsigned char ntbuffer[0x18];
++diff --git a/lib/vtls/vtls.c b/lib/vtls/vtls.c
++index 36465a7..2b606a5 100644
+ --- a/lib/vtls/vtls.c
+ +++ b/lib/vtls/vtls.c
+-@@ -835,9 +835,9 @@ void Curl_ssl_md5sum(unsigned char *tmp,
+-                      unsigned char *md5sum, /* output */
+-                      size_t md5len)
++@@ -921,9 +921,9 @@ CURLcode Curl_ssl_md5sum(unsigned char *tmp, /* input */
++                          unsigned char *md5sum, /* output */
++                          size_t md5len)
+  {
+ -#ifdef curlssl_md5sum
+ +#if defined(curlssl_md5sum)
+diff --git a/package/network/utils/curl/patches/310-polarssl-disable-runtime-version-check.patch b/package/network/utils/curl/patches/310-polarssl-disable-runtime-version-check.patch
+index d008227..61b99e6 100644
+--- a/package/network/utils/curl/patches/310-polarssl-disable-runtime-version-check.patch
++++ b/package/network/utils/curl/patches/310-polarssl-disable-runtime-version-check.patch
+@@ -1,11 +1,13 @@
++diff --git a/lib/vtls/polarssl.c b/lib/vtls/polarssl.c
++index fcce60f..56e9bb2 100644
+ --- a/lib/vtls/polarssl.c
+ +++ b/lib/vtls/polarssl.c
+-@@ -591,7 +591,7 @@ void Curl_polarssl_session_free(void *pt
++@@ -592,7 +592,7 @@ void Curl_polarssl_session_free(void *ptr)
+  
+  size_t Curl_polarssl_version(char *buffer, size_t size)
+  {
+ -  unsigned int version = version_get_number();
+ +  unsigned int version = POLARSSL_VERSION_NUMBER;
+-   return snprintf(buffer, size, "PolarSSL/%d.%d.%d", version>>24,
+-                   (version>>16)&0xff, (version>>8)&0xff);
+- }
++   return snprintf(buffer, size, "%s/%d.%d.%d",
++                   version >= 0x01030A00?"mbedTLS":"PolarSSL",
++                   version>>24, (version>>16)&0xff, (version>>8)&0xff);

@@ -1,0 +1,3 @@
+arca.dbus.wlan:CMD_UPDATE_SCHEDULE
+arca.dbus.firewall:CMD_RESTART
+arca.dbus.misc:firewall6 CMD_RESTART

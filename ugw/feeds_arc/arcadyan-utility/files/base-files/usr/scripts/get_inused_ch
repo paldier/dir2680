@@ -1,0 +1,1 @@
+mng_cli set VAR_WIRELESS_AP_INUSED_CH=`iwlist wlan0 channel |grep "Current Channel=" | sed -e 's/.*=//g'`

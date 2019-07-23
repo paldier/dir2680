@@ -1,0 +1,33 @@
+diff -ruN a/pppd/main.c b/pppd/main.c
+--- a/pppd/main.c	2018-02-24 18:26:25.446845262 +0800
++++ b/pppd/main.c	2018-02-24 18:41:17.288894626 +0800
+@@ -471,7 +471,7 @@
+ 	else
+ 	    p = "(unknown)";
+     }
+-    syslog(LOG_NOTICE, "pppd %s started by %s, uid %d", VERSION, p, uid);
++    syslog(LOG_NOTICE, "pppd started by %s, uid %d", p, uid);
+     script_setenv("PPPLOGNAME", p, 0);
+ 
+     if (devnam[0])
+@@ -1092,7 +1092,7 @@
+ 	return;
+     }
+ 
+-    dump_packet("rcvd", p, len);
++    //dump_packet("rcvd", p, len);
+     if (snoop_recv_hook) snoop_recv_hook(p, len);
+ 
+     p += 2;				/* Skip address and control */
+diff -ruN a/pppd/sys-linux.c b/pppd/sys-linux.c
+--- a/pppd/sys-linux.c	2018-02-24 18:25:11.620841176 +0800
++++ b/pppd/sys-linux.c	2018-02-24 18:41:34.067895555 +0800
+@@ -1087,7 +1087,7 @@
+     int fd = ppp_fd;
+     int proto;
+ 
+-    dump_packet("sent", p, len);
++    //dump_packet("sent", p, len);
+     if (snoop_send_hook) snoop_send_hook(p, len);
+ 
+     if (len < PPP_HDRLEN)

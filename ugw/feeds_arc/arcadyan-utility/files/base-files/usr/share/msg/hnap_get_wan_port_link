@@ -1,0 +1,2 @@
+#******** hnap_get_wan_port_link action ********
+arca.dbus.gpio:port CMD_GET_STATUS

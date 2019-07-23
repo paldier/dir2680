@@ -1,0 +1,6 @@
+#!/bin/sh
+
+mng_cli commit
+sync
+sleep 1
+reboot

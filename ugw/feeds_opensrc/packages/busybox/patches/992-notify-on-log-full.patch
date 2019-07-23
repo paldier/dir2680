@@ -1,0 +1,10 @@
+--- busybox-1.17.1/sysklogd/syslogd.c.orig	2018-09-26 15:15:59.373052103 +0800
++++ busybox-1.17.1/sysklogd/syslogd.c	2018-09-26 16:21:31.826212225 +0800
+@@ -274,6 +274,7 @@ static void log_to_shmem(const char *msg
+ 		msg += k;
+ 		len -= k;
+ 		G.shbuf->tail = 0;
++		system("mngcli action log_full");
+ 		goto again;
+ 	}
+ 	if (semop(G.s_semid, G.SMwup, 1) == -1) {

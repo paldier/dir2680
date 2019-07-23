@@ -1,0 +1,17 @@
+#!/bin/sh
+
+case "$1" in
+	"CMD_BOOT" | "CMD_START" | "CMD_RESTART")
+        	
+	/usr/sbin/sip_config TEL_LOG_Del_CallIN_Record   
+
+		;;
+
+	"CMD_STOP")
+
+		;;
+
+	*)
+		echo $0 'Phone_CFGSync          - notify brnsip '
+		;;
+esac

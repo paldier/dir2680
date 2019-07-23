@@ -1,0 +1,7 @@
+::sysinit:/sbin/sysup
+::shutdown:/sbin/sysdown
+#tts/0::askfirst:/bin/ash --login
+#ttyS0::askfirst:/bin/ash --login
+#tty1::askfirst:/bin/ash --login
+ttyLTQ0::askfirst:/bin/login
+#::respawn:/opt/reach/bin/exec_reach_app.sh > /dev/null 2>&1

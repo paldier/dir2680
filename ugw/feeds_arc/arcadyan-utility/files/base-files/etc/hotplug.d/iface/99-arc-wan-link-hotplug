@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# ACTION: "ifup"
+# INTERFACE: interface section
+# DEVICE: physical interface name
+
+# ACTION: "ifdown"
+# INTERFACE: interface section
+# DEVICE:
+
+# ACTION: "ifupdate"
+# INTERFACE: interface section
+# DEVICE:
+# IFUPDATE_ADDRESSES:
+# IFUPDATE_ROUTES:
+# IFUPDATE_PREFIXES:
+# IFUPDATE_DATA:
+
+#echo "[arc-wan-link-hotplug] ACTION=$ACTION, INTERFACE=$INTERFACE, DEVICE=$DEVICE" > /dev/console
+#interface_section=${INTERFACE:0:3}
+#if [ "$interface_section" == "wan" ] ; then
+#	if [ "$ACTION" == "ifup" ] ; then
+#		mngcli action mngcore_action="arc-wan-linkup $INTERFACE $DEVICE"
+#	elif [ "$ACTION" == "ifdown" ] ; then
+#		mngcli action mngcore_action="arc-wan-linkdown $INTERFACE"
+#	fi
+#fi
+

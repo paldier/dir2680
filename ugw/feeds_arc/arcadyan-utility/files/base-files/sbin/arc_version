@@ -1,0 +1,39 @@
+#!/bin/sh
+
+get_gphyfw_ver()
+{
+	echo `switch_cli GSW_MDIO_DATA_READ nAddressDev=0x5 nAddressReg=0x1E|grep nData|awk -F" " '{print $2$3}'`
+}
+
+get_bootcode_ver()
+{
+	echo `sed -e 's/.*ubootver=\(.*\)/BOOTLoader: \1/' -e '/BOOTLoader:/p' -n /proc/cmdline|sed 's/.*: //g;s/ .*//g'`
+}
+
+cfg_dft_get_value()
+{
+	mng_cli dft_get $1 | cut -d = -f 2-
+}
+
+[ -e /etc/wave_components.ver ] && . /etc/wave_components.ver
+
+[ "$1" == "get" ] && {
+	${1}_${2} 2>/dev/null
+	exit 0
+}
+
+echo ""
+echo "boot code version: "`get_bootcode_ver`
+echo "gphyfirmware version: "`get_gphyfw_ver`
+echo "HW version: "`arcbd get hw_version`
+echo "FW main version: "`cfg_dft_get_value ARC_SYS_FWVersion`
+echo "FW sub version: "`cfg_dft_get_value ARC_SYS_FWSubVersion`
+echo "FW build user: "`cfg_dft_get_value ARC_PROJ_BUILD_USER`
+echo "FW build host: "`cfg_dft_get_value ARC_PROJ_BUILD_HOST`
+echo "FW build time: "`cfg_dft_get_value ARC_PROJ_BUILD_TIME`
+[ -z "$wave_release_minor" ] || echo "WL driver version: $wave_release_minor"
+test -e /tmp/eeprom.tar.gz && echo "WL calibration: exist" || echo "WL calibration: N/A"
+echo "commit aldk: "`cfg_dft_get_value ARC_PROJ_BUILD_ALDK_CMT`
+echo "commit bsp : "`cfg_dft_get_value ARC_PROJ_BUILD_BSP_CMT`
+echo "commit iot : "`cfg_dft_get_value ARC_PROJ_BUILD_IOT_CMT`
+echo ""

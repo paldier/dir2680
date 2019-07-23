@@ -1,0 +1,66 @@
+#!/bin/sh
+laniface=`mng_cli get ARC_LAN_0_BridgedIfname`
+wan_base_ifname=`mng_cli get ARC_WAN_0_BASE_Ifname`
+
+old_IPTV_vlan_vid=`mng_cli tmp_get TMP_VLAN_IPTV_vid`
+old_VOIP_vlan_vid=`mng_cli tmp_get TMP_VLAN_VOIP_vid`
+
+#20140408 TEY: I remove all WAN related code as VLAN setup will be taken care by arc_link_state.
+addvlan()
+{
+	echo "add vlan"
+	wan_vlan_vid=`mng_cli get ARC_WAN_0_VLAN_Internet_vid`
+	IPTV_vlan_vid=`mng_cli get ARC_WAN_0_VLAN_IPTV_vid`
+	VOIP_vlan_vid=`mng_cli get ARC_WAN_0_VLAN_VOIP_vid`
+	IPTV_vlan_pri=`mng_cli get ARC_WAN_0_VLAN_IPTV_pri`
+	VOIP_vlan_pri=`mng_cli get ARC_WAN_0_VLAN_VOIP_pri`
+	pri_enable=`mng_cli get ARC_WAN_0_Pri_Enable`
+	ifconfig $wan_base_ifname 0.0.0.0 up   #WAN
+	vconfig add $wan_base_ifname $wan_vlan_vid
+	vconfig add $wan_base_ifname $IPTV_vlan_vid
+	vconfig add $wan_base_ifname $VOIP_vlan_vid
+	wan_ifname=${wan_base_ifname}.${wan_vlan_vid}
+	IPTV_ifname=${wan_base_ifname}.${IPTV_vlan_vid}
+	VOIP_ifname=${wan_base_ifname}.${VOIP_vlan_vid}
+	ifconfig $IPTV_ifname 0.0.0.0 up   #IPTV
+	ifconfig $VOIP_ifname 0.0.0.0 up   #VOIP
+
+	mng_cli tmp_set TMP_VLAN_IPTV_vid=$IPTV_vlan_vid
+	mng_cli tmp_set TMP_VLAN_VOIP_vid=$VOIP_vlan_vid
+	if [ "$pri_enable" == "true" ] ; then
+		vconfig set_egress_map $IPTV_ifname 0 $IPTV_vlan_pri
+		vconfig set_egress_map $VOIP_ifname 0 $VOIP_vlan_pri
+	fi
+	mng_cli set ARC_WAN_0_Iface=$wan_ifname
+	mng_cli set ARC_WAN_0_Ifname=$wan_ifname
+}
+delvlan()
+{
+	if [ "x$old_IPTV_vlan_vid" != "" ] ; then
+		vconfig rem  $wan_base_ifname.$old_IPTV_vlan_vid
+	fi
+	if [ "x$old_VOIP_vlan_vid" != "" ] ; then
+		vconfig rem  $wan_base_ifname.$old_VOIP_vlan_vid
+	fi
+}
+case "$1" in
+	"boot" | "CMD_BOOT")
+		ifconfig $laniface 0.0.0.0 up	#LAN
+		delvlan
+		vlan_enable=`mng_cli get ARC_WAN_0_VLAN_Enable`
+		if [ "$vlan_enable" == "true" ] ; then
+			addvlan 
+		else
+			mng_cli set ARC_WAN_0_Iface=$wan_base_ifname
+			mng_cli set ARC_WAN_0_Ifname=$wan_base_ifname
+		fi
+		mng_cli commit
+		;;
+
+
+	*)
+		echo $0 'boot          - setup and start VLAN interface'
+		echo $0 'start         - setup and start VLAN interface'
+		echo $0 'stop          - stop and delete VLAN interface'
+		;;
+esac

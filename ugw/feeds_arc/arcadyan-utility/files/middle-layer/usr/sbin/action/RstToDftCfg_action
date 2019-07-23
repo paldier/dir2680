@@ -1,0 +1,15 @@
+exec 100</usr/sbin/sync_cfg	####	lock this file for race condition protection
+flock 100
+
+rm -f /mnt/cfg1/config_1 /mnt/cfg2/config_2
+
+# clean internal radius server db
+rm -rf /etc/config/mysql/radius/
+
+# restore /etc/config from /etc/dftconfig.tgz
+rm -rf /etc/config
+tar -zxvf /etc/dftconfig.tgz -C /etc
+echo 1 > /etc/config/flag_dftcfg
+reboot.sh 1
+
+sleep 10

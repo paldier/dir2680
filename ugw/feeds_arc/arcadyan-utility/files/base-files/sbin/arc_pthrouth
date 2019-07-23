@@ -1,0 +1,40 @@
+#!/bin/sh
+
+case "$1" in
+	"CMD_BOOT" | "CMD_START" | "CMD_RESTART")
+        	pppoe_pt=`mng_cli get ARC_SYS_PPPOEPassthru`
+        	ipv6_pt=`mng_cli get ARC_IP6_PassThrough`
+        	lanface=`mng_cli get ARC_LAN_0_Ifname`
+        	default_wan=`mng_cli get ARC_WAN_DefaultRouteIdx`
+        	wanface=`mng_cli get ARC_WAN_${default_wan}_Ifname`
+
+        	if [ $pppoe_pt = "1" ] ; then
+			echo "pppoe_pt enable..."
+			echo "$lanface,$wanface" > /proc/pthrough/pppoe
+			ifconfig $lanface promisc
+        	else
+			echo "" > /proc/pthrough/pppoe
+			ifconfig $lanface -promisc
+        	fi
+
+        	if [ $ipv6_pt = "1" ] ; then
+			echo "ipv6_pt enable..."
+			echo "$lanface,$wanface" > /proc/pthrough/ipv6
+        	else
+			echo "" > /proc/pthrough/ipv6
+        	fi
+
+
+		;;
+
+	"CMD_STOP")
+		echo "" > /proc/pthrough/pppoe
+		echo "" > /proc/pthrough/ipv6
+		ifconfig $lanface -promisc
+
+		;;
+
+	*)
+		echo $0 'pt          - setup pt'
+		;;
+esac

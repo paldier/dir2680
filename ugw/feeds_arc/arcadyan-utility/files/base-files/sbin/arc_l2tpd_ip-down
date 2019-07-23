@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "0=$0" > /dev/console
+echo "1=$1" > /dev/console
+echo "2=$2" > /dev/console
+echo "3=$3" > /dev/console
+echo "4=$4" > /dev/console
+echo "5=$5" > /dev/console
+echo "6=$6" > /dev/console
+
+grep -v $1 /tmp/ppp_client_list > /tmp/ppp_client_list.new
+mv /tmp/ppp_client_list.new /tmp/ppp_client_list
+
+mng_cli tmp_set L2TPD_STATUS_IFNAME_$1=
+mng_cli tmp_set L2TPD_STATUS_PEERIP_$1=
+mng_cli tmp_set L2TPD_STATUS_SPEED_$1=
+mng_cli tmp_set L2TPD_STATUS_PEERNAME_$1=
+mng_cli action ui_vpn=l2tpd_mod
+exit

@@ -1,0 +1,4 @@
+arca.dbus.usbapp:CMD_DLNA_UPDATE 2 $(1)
+#arca.dbus.misc:storage remove $(1)
+arca.dbus.archotplugd:CMD_UNMOUNT $(1)
+arca.dbus.usbapp:CMD_SAMBA_UPDATE

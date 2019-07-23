@@ -1,0 +1,74 @@
+diff --git a/src/dyndns.c b/src/dyndns.c
+index 3cd329e..fd69cec 100644
+--- a/src/dyndns.c
++++ b/src/dyndns.c
+@@ -1886,7 +1886,7 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 								{
+ 									FILE *pFile;
+ 									char sBuf[32] = {0};
+-									pFile = fopen( "/tmp/ddnstate","w" );
++									pFile = fopen( "/tmp/ddns_status","w" );
+ 									sprintf(sBuf, "2"); // connected
+ 									if(pFile)
+ 								    {
+@@ -1894,11 +1894,11 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 	    								fclose(pFile);
+ 								    }
+ 									
+-									openlog(LOG_DDNS, LOG_NDELAY, LOG_DAEMON);
++									//openlog(LOG_DDNS, LOG_NDELAY, LOG_DAEMON);
+ 									setlogmask( LOG_UPTO(LOG_NOTICE ));
+ 									syslog(LOG_NOTICE , "DDNS client connect success!" );
+ 									closelog();
+-	                                os_shell_execute("rc upadte_DDNS_ipv6 &");
++									system("mngcli action /usr/share/msg/ddns_update_ipv6");
+ 								}
+                                 /****************************************************/
+ 								DBG_PRINTF((LOG_WARNING,"W:" MODULE_TAG "Alias '%s' to IP '%s' updated successfully.\n",
+@@ -1931,14 +1931,14 @@ static RC_TYPE do_update_alias_table(DYN_DNS_CLIENT *p_self,char *is_forced_upda
+ 	                                        /* add by EAP for output state */
+ 											FILE *pFile;
+ 											char sBuf[32] = {0};
+-											pFile = fopen( "/tmp/ddnstate","w" );
++											pFile = fopen( "/tmp/ddns_status","w" );
+ 											sprintf(sBuf, "0"); // Discnnected
+ 											if (pFile)
+ 										    {
+ 	    										fwrite(sBuf, sizeof(sBuf), 1, pFile);
+ 	    										fclose(pFile);
+ 										    }
+-											openlog(LOG_DDNS, LOG_NDELAY, LOG_DAEMON);
++											//openlog(LOG_DDNS, LOG_NDELAY, LOG_DAEMON);
+ 											setlogmask( LOG_UPTO(LOG_NOTICE ));
+ 											syslog(LOG_NOTICE , "DDNS client connect fault!" );
+ 											closelog();
+diff --git a/src/dyndns.h b/src/dyndns.h
+index 9b68ac2..d86b4be 100644
+--- a/src/dyndns.h
++++ b/src/dyndns.h
+@@ -76,11 +76,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ 
+ #define DYNDNS_VERSION_STRING	"02.28.10" DYNDNS_VERSION_SND DYNDNS_VERSION_THD DYNDNS_EXTRA_VERSION
+ 
+-#ifdef PRODUCT_DIR878
+-#define DYNDNS_AGENT_NAME	"D-Link DIR-878"
+-#else if defined(PRODUCT_DIR882)
+-#define DYNDNS_AGENT_NAME	"D-Link DIR-882"
+-#endif
++#define DYNDNS_AGENT_NAME	"D-Link DIR-2680"
+ 
+ #define DYNDNS_EMAIL_ADDR	"bhoover@wecs.com"
+ 
+diff --git a/src/os_unix.c b/src/os_unix.c
+index 26af95d..4fc3a53 100644
+--- a/src/os_unix.c
++++ b/src/os_unix.c
+@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
+ 
+ RC_TYPE os_syslog_open(const char *p_prg_name)
+ {
+-	openlog(LOG_DDNS, 0 , LOG_USER);
++	//openlog(LOG_DDNS, 0 , LOG_USER);
+ 	return RC_OK;
+ }
+ 

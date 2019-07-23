@@ -1,0 +1,8 @@
+#!/bin/sh
+
+busybox mdev $@
+#if [ ! -h /dev/console ]; then
+#        rm -f /dev/console
+#        ln -fs /dev/null /dev/console
+#fi
+

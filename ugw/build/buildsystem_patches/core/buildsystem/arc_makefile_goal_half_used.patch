@@ -1,0 +1,11 @@
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -45,6 +45,7 @@ $(target/stamp-compile): $(toolchain/stamp-install) $(tools/stamp-install) $(BUI
+ $(package/stamp-compile): $(target/stamp-compile) $(toolchain/stamp-install) $(package/stamp-cleanup)
+ $(package/stamp-install): $(package/stamp-compile)
+ $(target/stamp-install): $(package/stamp-compile) $(package/stamp-install)
++half: $(package/stamp-compile) $(package/stamp-install)
+ 
+ printdb:
+ 	@true

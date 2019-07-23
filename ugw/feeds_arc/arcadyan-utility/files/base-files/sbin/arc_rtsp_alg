@@ -1,0 +1,30 @@
+#!/bin/sh
+
+case "$1" in
+	"CMD_BOOT" | "CMD_START" | "CMD_RESTART")
+		rtsp_enable=`mng_cli get ARC_FIREWALL_ALGRTSP_Enable`
+
+		if [ $rtsp_enable = "1" ] ; then
+			echo "rtsp alg enable..."
+			insmod nf_conntrack_rtsp
+			insmod nf_nat_rtsp
+			conntrack -D -f ipv4 -p tcp --dport 554
+		else
+			rmmod nf_nat_rtsp
+			rmmod nf_conntrack_rtsp
+			conntrack -D -f ipv4 -p tcp --dport 554
+		fi
+
+		;;
+
+	"CMD_STOP")
+		rmmod nf_nat_rtsp
+		rmmod nf_conntrack_rtsp
+		conntrack -D -f ipv4 -p tcp --dport 554
+
+		;;
+
+	*)
+		echo $0 'rtsp alg          - setup rtsp alg'
+		;;
+esac

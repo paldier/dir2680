@@ -1,0 +1,25 @@
+From 24bf15eed3f509d257fadc9c7ef1346d8ea4951a Mon Sep 17 00:00:00 2001
+From: Terry Lin <terry_lin@arcadyan.com.tw>
+Date: Thu, 8 Dec 2016 11:35:43 +0800
+Subject: [PATCH] Fix break build if HAVE_XATTR is disabled.
+
+---
+ encfs/encfs.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/encfs/encfs.cpp b/encfs/encfs.cpp
+index 0529bec..7a0a127 100644
+--- a/encfs/encfs.cpp
++++ b/encfs/encfs.cpp
+@@ -741,6 +741,6 @@ int encfs_removexattr(const char *path, const char *name) {
+                         bind(_do_removexattr, _1, _2, name));
+ }
+ 
+-}  // namespace encfs
+-
+ #endif  // HAVE_XATTR
++
++}  // namespace encfs
+-- 
+1.8.3.1
+

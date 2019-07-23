@@ -1,0 +1,4 @@
+interface-agent mgmt
+interface-agent reload
+
+exit 0

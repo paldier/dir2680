@@ -1,0 +1,118 @@
+#!/bin/sh
+
+lan_iface=`mng_cli get ARC_LAN_0_Ifname`
+mac_clone_enabled=`mng_cli get ARC_SYS_MACCLONE_Enable`
+clonehwaddr=`mng_cli get ARC_SYS_MACCLONE_MAC`
+waniface=`mng_cli get ARC_WAN_0_Ifname`
+wan1iface=`mng_cli get ARC_WAN_1_Ifname`
+old_wan_hwaddr=`mng_cli tmp_get TMP_SYS_OLD_MACCLONE`
+
+get_eth_mac()
+{
+	x=`ifconfig $1 | awk '/br/ {printf $NF}' | cut -c1-17`;
+	echo $x;
+}
+
+### get base hwaddr. ###
+wan_basehwaddr=$(get_eth_mac $lan_iface)
+wan_basehwaddr=`macadd $wan_basehwaddr 1`
+
+## from glbcfg, default use wan0
+# Alpha 2012-12-07: Always reset the glbcfg ARC_WAN_0_MACaddr to the real hwaddr
+	wan_mac=$wan_basehwaddr
+	#mng_cli set ARC_WAN_0_MACaddr=$wan_mac
+
+	### tlhhh 2012-09-20: if multiple WANs, please enable the following ###
+	wan1_mac=$wan_basehwaddr
+	mng_cli set ARC_WAN_1_MACaddr=$wan1_mac
+	ccfg_cli set ARC_WAN_001_MACaddr=$wan1_mac
+	ccfg_cli set ARC_WAN_101_MACaddr=$wan1_mac
+	ccfg_cli set ARC_WAN_201_MACaddr=$wan1_mac
+	wan1_hwaddr="$wan1_mac"
+
+if [ "$mac_clone_enabled" == "1" ] && [ "x$clonehwaddr" != "x" ] ; then
+	wan_hwaddr="$clonehwaddr"
+else
+	wan_hwaddr="$wan_mac"
+fi
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+		wan0_proto=`mng_cli get ARC_WAN_0_IP4_Proto`
+
+		if [ $wan0_proto = "dslite" ] ; then
+			exit;
+		fi
+
+		if [ $old_wan_hwaddr = $wan_hwaddr ] ; then
+			exit;
+		fi
+		mng_cli tmp_set TMP_SYS_OLD_MACCLONE="$wan_hwaddr"
+
+		if [ -z $waniface ]; then
+		   exit;
+		fi
+
+		if [ $wan0_proto = "bridge" ] ; then
+			echo "bridge mode"
+		else
+			if [ ! -z "$waniface" ]; then
+				if [ -f /proc/sys/net/ipv6/conf/$waniface/forwarding ]; then
+					echo 0 > /proc/sys/net/ipv6/conf/$waniface/forwarding
+				fi
+				if [ -f /proc/sys/net/ipv6/conf/$waniface/disable_ipv6 ]; then
+					echo 0 > /proc/sys/net/ipv6/conf/$waniface/disable_ipv6
+				fi
+			fi
+		fi
+		if [ ! -z "$waniface" ]; then
+			ifconfig $waniface down
+			ifconfig $waniface hw ether $wan_hwaddr
+			ifconfig $waniface up
+		fi
+		mng_cli set ARC_WAN_0_MACaddr="$wan_hwaddr"
+		mng_cli commit
+
+		;;
+
+	"start" | "CMD_START")
+		wan0_proto=`mng_cli get ARC_WAN_0_IP4_Proto`
+
+		if [ $wan0_proto = "dslite" ] ; then
+			exit;
+		fi
+
+		if [ $wan0_proto = "bridge" ] ; then
+			echo "bridge mode"
+		else
+			if [ ! -z "$waniface" ]; then
+				if [ -f /proc/sys/net/ipv6/conf/$waniface/disable_ipv6 ]; then
+					echo 0 > /proc/sys/net/ipv6/conf/$waniface/disable_ipv6
+				fi
+			fi
+		fi
+		if [ ! -z "$waniface" ]; then
+			ifconfig $waniface down
+			ifconfig $waniface hw ether $wan_hwaddr
+			ifconfig $waniface up
+		fi
+		mng_cli set ARC_WAN_0_MACaddr="$wan_hwaddr"
+		mng_cli commit
+
+		;;
+
+	"stop" | "CMD_STOP")
+		if [ ! -z "$waniface" ]; then
+			ifconfig $waniface down
+		fi
+		if [ "X$wan1iface" != "X" ]; then
+			ifconfig $wan1iface down
+		fi
+		;;
+
+	*)
+		echo $0 'boot          - setup and start wan interface'
+		echo $0 'start         - start wan interface'
+		echo $0 'stop          - stop wan interface'
+		;;
+esac

@@ -1,0 +1,382 @@
+#!/bin/sh
+
+### linghong_tan 2013-02-23 
+### Porting from BSP UGW5.3 AR10 
+
+load_dsl_and_ppa()
+{
+	#arc_wan_detect=`arc_cfg_cli get ARC_WAN_Detect`
+	if [ -r /tmp/board_booting ]; then
+		echo "@AND!=3, Force ARC_WAN_Type=2(VD)"
+		arc_cfg_cli set ARC_WAN_Type 2
+	fi
+	arc_wan_type=`arc_cfg_cli get ARC_WAN_Type`
+
+	echo "@arc_wan_type  = $arc_wan_type"
+	if [ "$arc_wan_type" = "1" ]; then
+		#etherwan
+		wanphy_phymode="2"
+		wanphy_tc="2"
+                wanphy_setphymode="4"
+		wanphy_settc="2"
+	elif [ "$arc_wan_type" = "2" ]; then
+		#vdsl
+		wanphy_phymode="3"
+		wanphy_tc="1"
+		wanphy_setphymode="4"
+		wanphy_settc="2"
+	elif [ "$arc_wan_type" = "0" ]; then
+		#adsl
+		wanphy_phymode="0"
+		wanphy_tc="0"
+		wanphy_setphymode="4"
+		wanphy_settc="2"		
+	else
+		#unsupport mode, set to default Etherwan.
+		echo "!!!! unsupport wan type, set to default Etherwan."
+		wanphy_phymode="1"
+		wanphy_tc="2"
+		wanphy_setphymode="4"
+		wanphy_settc="2"
+		arc_cfg_cli set ARC_WAN_Type 1
+		#arc_commit
+	fi
+
+	
+
+	mng_cli set wanphy_setphymode@wan_phy_cfg="$wanphy_setphymode"
+	mng_cli set wanphy_settc@wan_phy_cfg="$wanphy_settc"
+	mng_cli set wanphy_phymode@wan_phy_cfg="$wanphy_phymode"
+	mng_cli set wanphy_tc@wan_phy_cfg="$wanphy_tc"
+	/usr/sbin/status_oper -u -f /etc/rc.conf SET "wan_phy_cfg" "wanphy_setphymode" $wanphy_setphymode
+	/usr/sbin/status_oper -u -f /etc/rc.conf SET "wan_phy_cfg" "wanphy_settc" $wanphy_settc
+	/usr/sbin/status_oper -u -f /etc/rc.conf SET "wan_phy_cfg" "wanphy_phymode" $wanphy_phymode
+	/usr/sbin/status_oper -u -f /etc/rc.conf SET "wan_phy_cfg" "wanphy_tc" $wanphy_tc
+
+	export wanphy_setphymode="$wanphy_setphymode"
+	export wanphy_settc="$wanphy_settc"
+	export wanphy_phymode="$wanphy_phymode"
+	export wanphy_tc="$wanphy_tc"
+
+	echo `mng_cli get ARC_SYS_FWVersion`-`mng_cli get ARC_SYS_FWSubVersion` > /tmp/sw_version
+	/etc/init.d/ltq_load_cpe_mei_drv.sh start
+	/etc/init.d/ltq_load_dsl_cpe_api.sh start
+	/etc/init.d/load_ppa_modules.sh start
+	/etc/init.d/ltq_cpe_control_init.sh start
+	/etc/init.d/PPA.sh boot
+}
+
+
+##### Wave 300 ######
+load_wireless(){
+	# Terry 20160312, workaround to correct uboot parameters for UGW-6.1.1
+	#uboot_env_changed=0
+	#if [ "$(uboot_env --get --name mem)" != "246M" ]; then
+	#	uboot_env --set --name mem --value "246M"
+	#	uboot_env_changed=1
+	#fi
+	#if [ "$(uboot_env --get --name wlanm)" != "247M" ]; then
+	#	uboot_env --set --name wlanm --value "247M"
+	#	uboot_env_changed=1
+	#fi
+	#if [ $uboot_env_changed -eq 1 ]; then
+	#	echo "Uboot parameters changed! Reboot automatically."
+	#	sleep 3
+	#	reboot
+	#fi
+    
+	# prepare all required files
+	mkdir /tmp/mtlk_images
+	ln -s /root/mtlk/images/* /tmp/mtlk_images/
+	
+	# Terry 20150707, follow UGW way
+	#/etc/rc.d/wave_wlan_init_eeprom start
+	#cp /tmp/cal_wlan0.bin /tmp/mtlk_images/cal_wlan0.bin
+	
+	# prepare calibration file
+	# if [ -z `ls /sys/class/ubi/ubi0*/name|xargs grep -w "wlanconfig"` ]; then
+	# 	if [ ! -e /root/mtlk/images/cal_wlan0.bin ]; then
+	#		echo "Fail to get calibration file for wireless driver!"
+	#		exit 1
+	#	else
+	#		echo "Boot normally with cal_wlan0.bin.."
+	#		# Terry 20140120, TODO, correct calibration file.
+	#		# Overwrite default calibration file. (Correct LNA for wave300)
+	#		# cp /sbin/cal_wlan0.bin /root/mtlk/images/cal_wlan0.bin
+	#		cp /sbin/cal_wlan0.bin /tmp/mtlk_images/cal_wlan0.bin
+	#	fi
+	# else
+	#	# read from volume 'wlanconfig', then extract to /lib/firmware
+	#	vol_mgmt read_cfg_gz wlanconfig /tmp/eeprom_wl.tar.gz
+	#	# tar xzf /tmp/eeprom_wl.tar.gz -C /root/mtlk/images/
+	#	tar xzf /tmp/eeprom_wl.tar.gz -C /tmp/mtlk_images/
+	#	rm /tmp/eeprom_wl.tar.gz
+	# fi
+
+	# package the cal_wlan0.bin, then write/update to wlanconfig
+	#cd /root/mtlk/images
+	#tar czf /tmp/eeprom_wl.tar.gz cal_wlan0.bin; cd -
+	#vol_mgmt write_vol wlanconfig /tmp/eeprom_wl.tar.gz
+
+	mptest=`uboot_env --get --name mptest`
+	if [ "x$mptest" == "x1" ]; then
+		/usr/sbin/telnetd -l /bin/sh &
+		echo "Enter WiFi calibration mode"
+		cp -f /etc/rc.d/mtlk_init_platform.sh /tmp
+		cp -f /lib/modules/`uname -r`/net/* /tmp
+		# including cal_wlan0.bin
+		cp -f /root/mtlk/images/* /tmp
+		cp -f /tmp/mtlk_images/* /tmp
+	fi
+
+	# ln -s /root/mtlk/images/* /lib/firmware/
+	
+	# insmod /lib/modules/`uname -r`/net/mtlkroot.ko cdebug=0
+	# insmod /lib/modules/`uname -r`/net/mtlk.ko ap=1 bb_cpu_ddr_mb_number=246
+	# insmod /lib/modules/`uname -r`/net/mtlk.ko ap=1 bb_cpu_ddr_mb_number=254 cpu_freq=300000000
+
+	#for beamforming
+	# cp -f /etc/rc.d/drvhlpr.conf /tmp
+	
+
+	# to sovlve wave300 and LTE crash issue
+	# /usr/sbin/mem -s 0x1f8001d0 -w 0xfcf -u
+	
+}
+
+
+stop_wireless(){
+	rmmod mtlk
+	rmmod mtlkroot
+}
+
+###### Voice driver ######
+load_voice() {
+	#even log
+	insmod /opt/lantiq/bin/drv_event_logger.ko
+
+	#voice_tapi
+	insmod /opt/lantiq/bin/drv_tapi.ko
+
+	#voice vmmc
+	insmod /opt/lantiq/bin/drv_vmmc.ko
+	#create device nodes for...
+	vmmc_major=`grep vmmc /proc/devices |cut -d' ' -f1`
+	vmmc_minors="10 11 12 13 14 15 16 17 18"
+	for vmmc_minor in $vmmc_minors ; do \
+		[ ! -e /dev/vmmc$vmmc_minor ] && mknod /dev/vmmc$vmmc_minor c $vmmc_major $vmmc_minor;
+	done
+
+	[ `cat /proc/cpuinfo | grep system | cut -f 3 -d ' '` !=  "Danube" ] && {
+		[ ! -e /dev/amazon_s-port ] && mknod /dev/amazon_s-port c 240 1
+		echo "INFO configuring HW scheduling 33/66"
+		echo "t0 0x0" > /proc/mips/mtsched
+		echo "t1 0x1" > /proc/mips/mtsched
+		echo "v0 0x0" > /proc/mips/mtsched
+	}
+
+	#voice kpi2udp
+	insmod /opt/lantiq/bin/drv_kpi2udp.ko
+	#voice common drivers
+	insmod /lib/modules/`uname -r`/voip_timer_driver.ko
+	#create device nodes for...
+	/bin/mknod /dev/voip_timer_driver c 229 0
+
+
+	##### load dect driver ####
+	#/usr/sbin/read_img dectconfig /ramdisk/flash/dect_rc.conf.gz
+	#/bin/gunzip -f /ramdisk/flash/dect_rc.conf.gz 2>/dev/null
+	#if [ $? -ne 0 ]; then
+	#	/bin/rm -f /ramdisk/flash/dect_rc.conf
+	#	/usr/sbin/upgrade /etc/dect_rc.conf.gz dectconfig 0 1 2>/dev/null
+	#	/usr/sbin/read_img dectconfig /ramdisk/flash/dect_rc.conf.gz
+	#	/bin/gunzip -f /ramdisk/flash/dect_rc.conf.gz
+	#fi
+
+	#chmod 777 /flash/dect_rc.conf
+
+	[ -e /usr/drivers/drv_timer.ko ] && {
+		insmod /usr/drivers/drv_timer.ko;
+		# for netdev budget 10
+		echo 10 > /proc/sys/net/core/netdev_budget
+		#create device nodes for...
+		#major_no=`grep $drv_dev_base_name /proc/devices |cut -d' ' -f1`
+		/bin/mknod /dev/timer_drv c 212 0
+	}
+	[ -e /usr/drivers/drv_dect.ko ] && {
+		insmod /usr/drivers/drv_dect.ko;
+		#create device nodes for...
+		#major_no=`grep $drv_dev_base_name /proc/devices |cut -d' ' -f1`
+		/bin/mknod /dev/dect_drv c 213 0
+	}
+	[ -e /usr/drivers/paging.ko ] && {
+		insmod /usr/drivers/paging.ko;
+		#create device nodes for...
+		#major_no=`grep $drv_dev_base_name /proc/devices |cut -d' ' -f1`
+		/bin/mknod /dev/pb c 150 0
+	}
+	/etc/init.d/load_audio_drv.sh start 
+}
+
+stop_voice(){
+
+	#FIXME: We should move this line to a voice agent
+	killall -9 tapidemo
+
+	# drv_dect.ko
+	rmmod cosic
+
+	# paging.ko
+	rmmod danube_paging
+
+	rmmod drv_timer
+
+	rmmod drv_kpi2udp
+
+	rmmod drv_vmmc
+
+	rmmod ltq_voip_timer_driver
+
+	rmmod drv_tapi
+
+}
+
+###### USB driver ######
+load_usb() {
+	#USB module
+	## Terry 20160311, UGW-6.1.1
+	insmod /lib/modules/`uname -r`/usb-common.ko
+	insmod /lib/modules/`uname -r`/usbcore.ko
+
+    	## linghong_tan 2013-02-23
+	## FIXME: should check usb0/1 and usbXmode? 
+	## This causes kernel hangs BUG: Bad page state in process mdev  pfn:0047e
+	insmod /lib/modules/`uname -r`/ltqusb_host.ko
+
+	#Simon@2014/08/01, insert usb class drivers
+	insmod /lib/modules/`uname -r`/usblp.ko
+	insmod /lib/modules/`uname -r`/usb-storage.ko
+	
+	#if [ -f /lib/modules/*/xhci.ko ]; then
+	#insmod /lib/modules/*/xhci.ko
+	#fi
+}
+
+load_usb_xhci() {
+	# xhci-hcd module
+	if [ -f /lib/modules/*/xhci-hcd.ko ]; then
+		echo "load_usb_xhci start enter" > /dev/console
+		insmod /lib/modules/*/xhci-hcd.ko
+		echo "load_usb_xhci start exit" > /dev/console
+	fi
+}
+
+load_uart1() {
+	# grant uart1
+	if [ -f /etc/init.d/arc-bsp-uart1 ]; then
+		/etc/init.d/arc-bsp-uart1 start
+	fi
+}
+
+load_usb_storage() {
+	#insmod /lib/modules/`uname -r`/usb-storage.ko
+	#sleep 6
+	#rmmod usb-storage
+	insmod /lib/modules/`uname -r`/nls_cp437.ko
+	insmod /lib/modules/`uname -r`/nls_iso8859-1.ko
+	insmod /lib/modules/`uname -r`/nls_utf8.ko
+	insmod /lib/modules/`uname -r`/vfat.ko
+	insmod /lib/modules/`uname -r`/hfs.ko
+	insmod /lib/modules/`uname -r`/hfsplus.ko
+	#mbcache for ext2
+	insmod /lib/modules/`uname -r`/mbcache.ko
+	insmod /lib/modules/`uname -r`/ext2.ko
+	
+	#jbd for ext3
+	insmod /lib/modules/`uname -r`/jbd.ko
+	insmod /lib/modules/`uname -r`/ext3.ko
+
+	#ext4:
+	insmod /lib/modules/`uname -r`/jbd2.ko
+	insmod /lib/modules/`uname -r`/ext4.ko
+
+	#ntfs
+	insmod /lib/modules/`uname -r`/jnl.ko
+	insmod /lib/modules/`uname -r`/ufsd.ko
+
+	insmod /lib/modules/`uname -r`/usb-storage.ko
+}
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+
+		#ppa
+		#load_ppa
+		#ifxos
+		insmod /lib/modules/`uname -r`/drv_ifxos.ko
+
+		#dsl and ppa
+		#load_dsl_and_ppa
+
+		#load_wireless
+
+		#sleep 5
+		#voice
+		load_voice
+
+		#load_usb
+
+		######## TODO: Netiflter & Qos ##########
+
+		insmod xt_iprange
+		
+		#### IPv6 firewall netfilter ####
+		insmod /lib/modules/`uname -r`/ip6t_ipv6header.ko
+		insmod /lib/modules/`uname -r`/ip6t_rt.ko
+
+		#### Bill@2018.08.31 add to load nfnetlink.ko and nf_conntrack_netlink.ko for conntrack tool ####
+		insmod /lib/modules/`uname -r`/nfnetlink.ko
+		insmod /lib/modules/`uname -r`/nf_conntrack_netlink.ko
+
+		### Forrest@2017/09/19, add McAfee support ###
+		mkdir -m 777 /var/McAfee
+		
+		;;
+
+	"stop" | "CMD_STOP")
+
+		stop_voice
+
+		;;
+
+	"wl_start" | "CMD_WL_START")
+
+		load_wireless
+		;;
+
+	"wl_stop" | "CMD_WL_STOP")
+
+		stop_wireless
+		;;
+		
+	"usb_storage")
+
+		load_usb_storage
+
+		;;
+
+	"usb_xhci")
+		load_usb_xhci
+		;;
+
+	"uart1")
+		load_uart1
+		;;
+	"watchdog")
+		watchdog -T 2 -t 1 -P 0 /dev/watchdog0 
+		;;
+	*)
+		echo $0 'boot          - install kernel modules'
+		echo $0 'start         - install kernel modules'
+		;;
+esac

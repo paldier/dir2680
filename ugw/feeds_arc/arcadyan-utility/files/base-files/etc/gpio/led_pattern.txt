@@ -1,0 +1,20 @@
+#Format: pattern_id owner name color priority flash interval speed
+#Note: item begin with column 0 and need a space between items
+#Note: the unit of interval is 0.1 sec (100ms) 
+#Note: option of color [R|G|B|W|Y|P|I]
+#Note: Name don't exceed 30 character
+#Note: Owner don't exceed 30 character
+#Note: Do not change id, led name for backward compatibility
+##########################################################
+0 SYS Booting G 1 1 10 1
+1 CUS Power-on-NormalStatus G 2 0 0 0
+2 CUS Notification_from_Reach B 3 1 20 1
+3 CUS Reach_is_connected G 4 1 20 1
+4 CUS Reacch_is_disconnected R 6 1 5 1
+5 SYS Network_is_connecting_with_WPS R 8 1 0 0
+6 SYS Network_is_disconnected R 9 1 5 1
+7 SYS FW_Update G 10 1 5 0
+8 SYS System_Error R 11 0 0 0
+9 CUS Reach_Error R 12 0 0 0
+10 CUS AMC_Error R 13 0 0 0
+11 SYS FW_Update_Error R 14 0 0 0

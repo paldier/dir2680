@@ -1,0 +1,11 @@
+#!/bin/sh
+
+arc_led led_orange off
+arc_led led_blue on
+
+if [ -f /sbin/arc_fwt ]; then
+	/sbin/arc_fwt
+fi
+
+uboot_env --set --name bootup_ok --value 1
+

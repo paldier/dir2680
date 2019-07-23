@@ -1,0 +1,7 @@
+arca.dbus.ecmh:CMD_STOP
+arca.dbus.nat64:CMD_STOP
+arca.dbus.v6rd:CMD_STOP
+arca.dbus.v6to4:CMD_STOP
+arca.dbus.misc:routes6 CMD_STOP
+arca.dbus.radvd:CMD_RESTART
+arca.dbus.dhcp6d:CMD_RESTART

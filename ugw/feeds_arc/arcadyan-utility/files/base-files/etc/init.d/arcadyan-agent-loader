@@ -1,0 +1,50 @@
+#!/bin/sh
+# Copyright (C) 2007 OpenWrt.org
+
+START=09
+
+start()
+{
+	local PIDS
+
+	PIDS=`ps | grep -w "dbus-daemon" | grep -v grep | awk '{ print $1 }'`
+	while [ -z $PIDS ] 
+	do
+		echo "Wait for dbus-daemon starting up ...";
+		sleep 1;
+		PIDS=`ps | grep -w "dbus-daemon" | grep -v grep | awk '{ print $1 }'`
+	done
+       /usr/sbin/arca-agent-loader /usr/agents &
+       return 0
+
+}
+
+stop()
+{
+
+	dbus-arca-cli --notify CMD_QUIT
+	sleep 1
+	killall arca-agent-loader
+	return 0
+}
+
+restart()
+{
+	stop
+	start
+	return 0
+}
+
+case "$1" in
+	"boot")		start &		;;
+	"start")	start &		;;
+	"stop")		stop &	;;
+	"restart")	restart &     ;;
+	*)
+			echo $0 'boot          - setup and start arcadyan agent loader service'
+			echo $0 'start         - start arcadyan agent loader service'
+			echo $0 'stop          - stop arcadyan agent loader service'
+			echo $0 'restart       - restart arcadyan agent loader service'
+			;;
+esac
+

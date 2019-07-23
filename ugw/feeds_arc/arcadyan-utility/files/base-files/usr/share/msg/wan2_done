@@ -1,0 +1,5 @@
+arca.dbus.misc:wan CMD_WAN_UPDATE $(1)
+#arca.dbus.tr69:CMD_RESTART
+arca.dbus.firewall:CMD_RESTART generic_mod
+arca.dbus.misc:tr69_trigger start
+#arca.dbus.tr69:CMD_RESTART TR111

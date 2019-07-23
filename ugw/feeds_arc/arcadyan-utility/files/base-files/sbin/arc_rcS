@@ -1,0 +1,19 @@
+#!/bin/sh
+
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		## cal BSP rcS scripts
+		sh /etc/init.d/rcS S boot
+	;;
+
+	"stop" | "CMD_STOP")
+		
+	;;
+
+	*)
+		echo $0 'boot          - setup and start xPON interface and services'
+		echo $0 'start         - setup and start xPON interface and services'
+		echo $0 'stop          - stop and delete xPON interface and services'
+		;;
+esac

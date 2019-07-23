@@ -1,0 +1,2 @@
+#******** hnap_ddns_settings action ********
+arca.dbus.ddns:CMD_RESTART

@@ -1,0 +1,4 @@
+arca.dbus.usbapp:CMD_ACCOUNT_RESET
+arca.dbus.usbapp:CMD_ACCOUNT_SET
+arca.dbus.usbapp:CMD_FTP_UPDATE
+arca.dbus.usbapp:CMD_SAMBA_UPDATE

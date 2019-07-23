@@ -1,0 +1,2 @@
+# restart dhcpc
+arca.dbus.dhcpc:CMD_RESTART $(1)

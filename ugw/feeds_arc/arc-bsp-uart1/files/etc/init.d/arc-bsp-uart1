@@ -1,0 +1,15 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2008 OpenWrt.org
+
+START=99
+
+start() {
+	# grant uart1
+	mem -s 0x16080120 -w 0x000 -u
+	# set baud rate
+	stty -F /dev/ttyLTQ1 115200
+}
+
+boot() {
+	start
+}

@@ -1,0 +1,8 @@
+#******** system reboot ********
+#arca.dbus.misc:CMD_COMMIT
+arca.dbus.misc:led_pwrred 1
+arca.dbus.misc:commit
+arca.dbus.misc:sleep 2
+arca.dbus.voip:CMD_UNREG
+arca.dbus.misc:sleep 6
+arca.dbus.misc:reboot

@@ -1,0 +1,36 @@
+#!/bin/sh
+#Combine 
+# 1. /etc/cups/cupsd_top.conf
+# 2. <Listened address setting>
+# 3. /etc/cups/cupsd_bottom.conf
+
+CONFIG_FILE=/tmp/etc/cupsd.conf
+CONFIG_TOP=/etc/cups/cupsd_top.conf
+CONFIG_BOTTOM=/etc/cups/cupsd_bottom.conf
+DEFAULT_IPP_PORT=631
+
+IP4_ADDR=`ccfg_cli get ARC_LAN_0_IP4_Addr`
+IP6_GUA=`ccfg_cli get ARC_LAN_0_IP6_GUAAddr`
+IP6_LLA=`ccfg_cli get ARC_LAN_0_IP6_LLAAddr`
+DOMAIN_NAME=`ccfg_cli get ARC_SYS_DomainName`
+
+cp ${CONFIG_TOP} ${CONFIG_FILE}
+if [ -n "${IP4_ADDR}" ]; then
+	echo "Listen ${IP4_ADDR}:${DEFAULT_IPP_PORT}" >> ${CONFIG_FILE}
+fi
+
+#if [ -n "${IP6_GUA}" ]; then
+#	echo "Listen [${IP6_GUA}]:${DEFAULT_IPP_PORT}" >> ${CONFIG_FILE}
+#fi
+
+if [ -n "${IP6_LLA}" ]; then
+	echo "Listen :::${DEFAULT_IPP_PORT}" >> ${CONFIG_FILE}
+fi
+
+if [ -n "${DOMAIN_NAME}" ]; then
+	echo "ServerName ${DOMAIN_NAME}" >> ${CONFIG_FILE}
+	echo "ServerAlias *" >> ${CONFIG_FILE}
+fi
+
+cat ${CONFIG_BOTTOM} >> ${CONFIG_FILE}
+

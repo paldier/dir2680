@@ -1,0 +1,12 @@
+diff -ruN a/llmnrd.c b/llmnrd.c
+--- a/llmnrd.c	2017-10-18 00:25:44.000000000 +0800
++++ b/llmnrd.c	2018-02-01 15:17:14.409834640 +0800
+@@ -44,6 +44,8 @@
+ #include "llmnr-packet.h"
+ #include "socket.h"
+ 
++#define O_CLOEXEC       02000000
++
+ static bool llmnrd_running = true;
+ static int llmnrd_sock_ipv4 = -1;
+ static int llmnrd_sock_ipv6 = -1;

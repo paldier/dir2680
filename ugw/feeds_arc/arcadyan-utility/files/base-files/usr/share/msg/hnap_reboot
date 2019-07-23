@@ -1,0 +1,4 @@
+#******** system reboot ********
+arca.dbus.misc:commit
+arca.dbus.misc:sleep 2
+arca.dbus.misc:reboot

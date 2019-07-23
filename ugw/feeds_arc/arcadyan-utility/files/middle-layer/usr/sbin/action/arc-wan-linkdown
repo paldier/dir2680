@@ -1,0 +1,65 @@
+#!/bin/sh
+echo "none" > /sys/class/leds/online_led/trigger
+
+# $1: interface section, EX: wan0, wan1...
+echo "[arc-wan-linkdown] section:$1" > /dev/console
+section="$1"
+section_index=`echo ${section:3:6} | awk '{printf "%d", $1}'`
+echo "[arc-wan-linkdown] section_index:$section_index" > /dev/console
+
+echo "[arc-wan-linkdown] ntpclient-agent stop" > /dev/console
+( ntpclient-agent stop ) &
+
+if [ -f /etc/init.d/ddns ]; then
+echo "[arc-wan-linkdown] ddns stop..." > /dev/console
+( /etc/init.d/ddns stop ) &
+fi
+
+# call wan_stop action for ALDK agents
+# mngcli action wan_stop
+
+# igmpproxy part
+igmpproxy_v4_enable=`abscfg get ARC_IGMP_IP4_Enable`
+igmpproxy_index=`abscfg get ARC_IGMP_UpStreamIndex`
+echo "[arc-wan-linkdown] igmpproxy_v4_enable:$igmpproxy_v4_enable, igmpproxy_index:$igmpproxy_index" > /dev/console
+if [ "igmpproxy_v4_enable" == "1" ]; then
+	if [ "$section_index" == "$igmpproxy_index" ] ; then
+		#/etc/init.d/arc_igproxy.sh stop
+		killall arc_igmpproxy
+	fi
+fi
+
+# clear WAN information in runtime global config
+echo "[arc-wan-linkup] modify ARC_WAN config...." > /dev/console
+wan_type=`abscfg get ARC_WAN_Type`
+wan_index=${wan_type}" "${section_index}
+abscfg set ARC_WAN_xy_TMP_IP4_Addr ${wan_index} "0.0.0.0"
+abscfg set ARC_WAN_xy_TMP_IP4_Netmask ${wan_index} "0.0.0.0"
+abscfg set ARC_WAN_xy_TMP_IP4_Gateway ${wan_index} "0.0.0.0"
+abscfg set ARC_WAN_xy_TMP_IP4_DNS_Runtime1 ${wan_index} ""
+abscfg set ARC_WAN_xy_TMP_IP4_DNS_Runtime2 ${wan_index} ""
+abscfg set ARC_WAN_xy_TMP_IP4_DHCP_Lease ${wan_index} "0"
+
+ADSL=0
+ETHER=1
+VDSL=2
+
+wan_type=`abscfg get ARC_WAN_Type`
+case "$wan_type" in
+	"$ADSL")
+		echo 0 > /tmp/dsl_linkstate
+		;;
+	"$VDSL")
+		echo 0 > /tmp/dsl_linkstate
+		;;
+	"$ETHER")
+		echo 0 > /tmp/ethuplink_linkstate
+		;;
+	*)
+		echo "Illegal WAN Tyep ${wan_type}" > /dev/console 
+		;;
+esac
+
+sip_config SIP_CORE_SetVcIPAddr 1 "" ""
+
+exit 0

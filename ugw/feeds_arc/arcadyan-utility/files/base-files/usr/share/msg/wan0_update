@@ -1,0 +1,1 @@
+arca.dbus.misc:wan CMD_WAN_UPDATE $(1)

@@ -1,0 +1,4 @@
+#action for Routing.asp saving
+arca.dbus.misc:route_table CMD_EDIT_START
+arca.dbus.zebra:CMD_RESTART
+arca.dbus.firewall:CMD_RESTART $(1)

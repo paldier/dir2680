@@ -1,0 +1,9 @@
+#******** hnap_router_lan_settings action ********
+arca.dbus.misc:lan CMD_BOOT
+arca.dbus.dhcpd:CMD_RESTART
+arca.dbus.misc:switch CMD_PHY_ON
+arca.dbus.mdns:CMD_RESTART
+arca.dbus.dnsmasq:CMD_RESTART
+arca.dbus.llmnrd:CMD_RESTART
+arca.dbus.upnp:CMD_RESTART
+arca.dbus.httpd:CMD_RESTART

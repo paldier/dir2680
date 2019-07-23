@@ -1,0 +1,9 @@
+#$1=update
+
+/usr/sbin/saveaction "$0 $@"
+
+#save config to module
+/usr/sbin/agent/staticroute_agent
+
+mngcli commit
+exit 0

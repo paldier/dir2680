@@ -1,0 +1,7 @@
+arca.dbus.misc:wlan CMD_STOP $(1)
+arca.dbus.hostapd: CMD_STOP $(1)
+arca.dbus.misc:sleep 2
+arca.dbus.misc:wlan CMD_START $(1)
+arca.dbus.hostapd: CMD_START $(1)
+## Quantenna 5G
+arca.dbus.misc:qcsapi CMD_WL_BASIC

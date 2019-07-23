@@ -1,0 +1,8 @@
+#arca.dbus.misc:wan CMD_WAN_START
+#arca.dbus.gpio:port CMD_START_WAN_DETECT
+#arca.dbus.heartbeat:CMD_RESTART
+#arca.dbus.dhcpc:CMD_RESTART
+#arca.dbus.wanppp:CMD_RESTART
+arca.dbus.dhcpc:CMD_STOP
+arca.dbus.wanppp:CMD_STOP
+arca.dbus.misc:link_state CMD_UPDATE

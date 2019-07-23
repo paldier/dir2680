@@ -1,0 +1,49 @@
+diff -ruN a/miscutils/crond.c b/miscutils/crond.c
+--- a/miscutils/crond.c	2010-07-25 06:12:43.000000000 +0800
++++ b/miscutils/crond.c	2018-02-24 17:47:48.680717029 +0800
+@@ -193,7 +193,7 @@
+ 	xchdir(CDir);
+ 	//signal(SIGHUP, SIG_IGN); /* ? original crond dies on HUP... */
+ 	xsetenv("SHELL", DEFAULT_SHELL); /* once, for all future children */
+-	crondlog(LVL8 "crond (busybox "BB_VER") started, log level %d", LogLevel);
++	crondlog(LVL8 "crond started, log level %d", LogLevel);
+ 	SynchronizeDir();
+ 
+ 	/* main loop - synchronize to 1 second after the minute, minimum sleep
+@@ -707,8 +707,8 @@
+ 				continue;
+ 
+ 			RunJob(file->cf_User, line);
+-			crondlog(LVL8 "USER %s pid %3d cmd %s",
+-				file->cf_User, (int)line->cl_Pid, line->cl_Shell);
++			//crondlog(LVL8 "USER %s pid %3d cmd %s",
++			//	file->cf_User, (int)line->cl_Pid, line->cl_Shell);
+ 			if (line->cl_Pid < 0) {
+ 				file->cf_Ready = 1;
+ 			} else if (line->cl_Pid > 0) {
+diff -ruN a/networking/telnetd.c b/networking/telnetd.c
+--- a/networking/telnetd.c	2010-07-06 10:25:54.000000000 +0800
++++ b/networking/telnetd.c	2018-02-24 18:07:14.791781574 +0800
+@@ -505,8 +505,8 @@
+ 	}
+ 	/* Redirect log to syslog early, if needed */
+ 	if (IS_INETD || (opt & OPT_SYSLOG) || !(opt & OPT_FOREGROUND)) {
+-		openlog(applet_name, LOG_PID, LOG_DAEMON);
+-		logmode = LOGMODE_SYSLOG;
++		//openlog(applet_name, LOG_PID, LOG_DAEMON);
++		//logmode = LOGMODE_SYSLOG;
+ 	}
+ #if ENABLE_FEATURE_TELNETD_STANDALONE
+ 	if (IS_INETD) {
+diff -ruN a/sysklogd/syslogd.c b/sysklogd/syslogd.c
+--- a/sysklogd/syslogd.c	2018-02-24 12:46:26.602716185 +0800
++++ b/sysklogd/syslogd.c	2018-02-24 12:52:04.645734896 +0800
+@@ -581,7 +581,7 @@
+ 		ipcsyslog_init();
+ 	}
+ 
+-	timestamp_and_log_internal("syslogd started: BusyBox v" BB_VER);
++	timestamp_and_log_internal("syslogd started: BusyBox");
+ 
+ 	while (!bb_got_signal) {
+ 		ssize_t sz;

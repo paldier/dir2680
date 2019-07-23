@@ -1,0 +1,32 @@
+diff -ruN a/server/dhcpd.c b/server/dhcpd.c
+--- a/server/dhcpd.c	2018-02-24 15:55:49.035345096 +0800
++++ b/server/dhcpd.c	2018-02-24 16:09:27.318390388 +0800
+@@ -656,10 +656,13 @@
+         }
+ 
+ 	if (!quiet) {
++		log_info("DHCP Server");
++#if 0	//remove for DLink
+ 		log_info("%s %s", message, PACKAGE_VERSION);
+ 		log_info (copyright);
+ 		log_info (arr);
+ 		log_info (url);
++#endif
+ 	} else {
+ 		quiet = 0;
+ 		log_perror = 0;
+@@ -1272,11 +1275,14 @@
+ 					/* Don't log to stderr twice. */
+ 					tmp = log_perror;
+ 					log_perror = 0;
++					log_info("DHCP Server");
++#if 0	//remove for DLink
+ 					log_info("%s %s",
+ 						 message, PACKAGE_VERSION);
+ 					log_info (copyright);
+ 					log_info (arr);
+ 					log_info (url);
++#endif
+ 					log_perror = tmp;
+ 				}
+ 			} else

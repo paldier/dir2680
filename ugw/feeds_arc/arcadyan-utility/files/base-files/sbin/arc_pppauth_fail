@@ -1,0 +1,5 @@
+#!/bin/sh
+
+#arc_led internet_g off
+#arc_led internet_unconnect on
+mngcli tmp_set TMP_pppoe_auth_fail=1

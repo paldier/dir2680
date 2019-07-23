@@ -1,0 +1,13 @@
+arca.dbus.misc:if6 CMD_LAN
+arca.dbus.misc:firewall6 CMD_RESTART
+#arca.dbus.misc:dns_to_resolv
+arca.dbus.dnsmasq:CMD_RESTART
+arca.dbus.v6rd:CMD_RECONNECT
+arca.dbus.dslite:CMD_RESTART
+#arca.dbus.nat64:CMD_RESTART
+#arca.dbus.ula:CMD_ULA_WAN_CONNECTED
+arca.dbus.radvd:CMD_RESTART
+arca.dbus.dhcp6d:CMD_RESTART
+arca.dbus.misc:mcast CMD_RESTART
+#arca.dbus.ecmh:CMD_RESTART
+arca.dbus.misc:airupgrade CMD_START

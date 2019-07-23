@@ -1,0 +1,10 @@
+#!/bin/sh
+# If there is not "wanstatus", used arc_wanup to execute message "wan_start" while LINK_UP.
+
+actv_wan=`mng_cli get ARC_WAN_Active`
+for idx in $actv_wan;
+do
+    wan_pam="$wan_pam wan_idx=${idx}"
+done
+
+mng_cli action wan_start="${wan_pam}"

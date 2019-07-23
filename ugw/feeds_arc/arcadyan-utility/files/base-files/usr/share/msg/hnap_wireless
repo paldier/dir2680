@@ -1,0 +1,3 @@
+arca.dbus.mdns:CMD_RESTART
+arca.dbus.wlan:CMD_RESTART
+arca.dbus.misc:commit

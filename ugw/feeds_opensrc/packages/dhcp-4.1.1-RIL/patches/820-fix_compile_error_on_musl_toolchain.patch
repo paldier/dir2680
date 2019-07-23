@@ -1,0 +1,39 @@
+--- dhcp-4.1.1/server/dhcp.c.orig	2017-09-11 15:50:50.320389505 +0800
++++ dhcp-4.1.1/server/dhcp.c	2017-09-11 15:52:15.376070452 +0800
+@@ -4269,7 +4269,7 @@ int mockup_lease (struct lease **lp, str
+  * @param	e	binary data
+  * @return	TRUE if conversion was successful and FALSE otherwise
+  */
+-#include <net/ethernet.h>
++#include <linux/if_ether.h>
+ struct	ether_header_tmp {
+ 	u_int8_t  ether_dhost[6];
+ 	u_int8_t  ether_shost[6];
+@@ -4294,13 +4294,13 @@ ether_atoe(const char *a, unsigned char
+ 	char *c = (char *) a;
+ 	int i = 0;
+ 
+-	memset(e, 0, ETHER_ADDR_LEN);
++	memset(e, 0, ETH_ALEN);
+ 	for (;;) {
+ 		e[i++] = (unsigned char) strtoul(c, &c, 16);
+-		if (!*c++ || i == ETHER_ADDR_LEN)
++		if (!*c++ || i == ETH_ALEN)
+ 			break;
+ 	}
+-	return (i == ETHER_ADDR_LEN);
++	return (i == ETH_ALEN);
+ }
+ 
+ int arpping(struct lease *candl, u_int32_t ip, unsigned char *mac, char *interface, unsigned char *replied_mac)
+--- dhcp-4.1.1/server/dhcpd.c.orig	2017-09-11 15:57:20.938420401 +0800
++++ dhcp-4.1.1/server/dhcpd.c	2017-09-11 15:57:57.658182019 +0800
+@@ -62,7 +62,7 @@ static const char url [] =
+ //crazy_liang 2013.11.6
+ #include <sys/sysinfo.h>
+ #include <sys/ioctl.h>
+-#include <net/ethernet.h>
++#include <linux/if_ether.h>
+ 
+ #define DEFAULT_CHECK_INTERVAL 15
+ #define MAXIMUM_CHECK_INTERVAL 90

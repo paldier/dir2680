@@ -1,0 +1,5 @@
+#scan all uplink interfaces to set hostname for dhcp type uplinks 
+interface-agent wan all
+interface-agent reload
+
+exit 0

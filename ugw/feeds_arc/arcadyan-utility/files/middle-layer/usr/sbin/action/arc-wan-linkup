@@ -1,0 +1,88 @@
+#!/bin/sh
+echo "default-on" > /sys/class/leds/online_led/trigger
+
+# $1: interface section, EX: wan0, wan1...
+# $2: physical interface name, EX: eth1 for DHCP, pppoe-wan for PPPoE
+echo "[arc-wan-linkup] section:$1, phy_ifname:$2" > /dev/console
+section="$1"
+phy_ifname=$2
+section_index=`echo ${section:3:6} | awk '{printf "%d", $1}'`
+echo "[arc-wan-linkup] section_index:$section_index" > /dev/console
+
+echo "[arc-wan-linkup] ntpclient-agent start" > /dev/console
+( ntpclient-agent start ) &
+
+if [ -f /etc/init.d/ddns ]; then
+echo "[arc-wan-linkup] ddns re-start..." > /dev/console
+( /etc/init.d/ddns restart ) &
+fi
+
+# call wan_done action for ALDK agents
+# mngcli action wan_done
+
+# call igmpproxy_start action and add firewall rule for igmpproxy when WAN 2 is ready (for DT)
+igmpproxy_v4_enable=`abscfg get ARC_IGMP_IP4_Enable`
+igmpproxy_index=`abscfg get ARC_IGMP_UpStreamIndex`
+echo "[arc-wan-linkup] igmpproxy_v4_enable:$igmpproxy_v4_enable, igmpproxy_index:$igmpproxy_index" > /dev/console
+if [ "igmpproxy_v4_enable" == "1" ]; then
+	( /usr/sbin/igmpproxy_firewall ) &
+	if [ -d "/tmp/firewallExt" ]; then
+	    echo "Directory exists." > /dev/console
+	else
+		mkdir /tmp/firewallExt
+	fi
+	ln -sf /usr/sbin/igmpproxy_firewall /tmp/firewallExt/M1_99_arc_igmpproxy.user
+	if [ "$section_index" == "$igmpproxy_index" ] ; then
+		#/etc/init.d/arc_igproxy.sh stop
+		#/etc/init.d/arc_igproxy.sh start
+		killall arc_igmpproxy
+		/usr/sbin/arc_igmpproxy&
+	fi
+fi
+
+# wan global config modify
+echo "[arc-wan-linkup] modify ARC_WAN config...." > /dev/console
+ADSL=0
+ETHER=1
+VDSL=2
+
+wan_type=`abscfg get ARC_WAN_Type`
+case "$wan_type" in
+	"$ADSL")
+		echo 1 > /tmp/dsl_linkstate
+		;;
+	"$VDSL")
+		echo 1 > /tmp/dsl_linkstate
+		;;
+	"$ETHER")
+		echo 1 > /tmp/ethuplink_linkstate
+		;;
+	*)
+		echo "Illegal WAN Tyep ${wan_type}" > /dev/console 
+		;;
+esac
+
+wan_ipv4=`abscfg get ARC_WAN_xy_TMP_IP4_Addr ${wan_type} ${section_index}`
+upload_rate=`abscfg get ARC_WAN_TMP_UploadRate`
+download_rate=`abscfg get ARC_WAN_TMP_DownloadRate`
+sip_config SIP_CORE_SetVcIPAddr 1 ${wan_ipv4} 192.168.2.1
+sip_config SIP_CORE_Set_VcBandwidth ${upload_rate}
+echo "[arc-wan-linkup] wan_ipv4:$wan_ipv4, upload_rate:$upload_rate" > /dev/console
+
+# Email Abuse Update List  by Garnet 2016/09/07
+DEVICE=$2
+echo "[siteblock_updatelist] Hotplug for interface $DEVICE" >> /dev/console
+echo "[siteblock_updatelist] DEVICE:0:3 ${DEVICE:0:3} " >> /dev/console
+
+if [ "${DEVICE:0:3}" = "ppp" ] ; then
+        WAN_IPADDRESS="$(ifconfig $DEVICE | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1 }')"
+        echo "[siteblock_updatelist] WAN_IPADDRESS:0:5 ${WAN_IPADDRESS:0:5} " >> /dev/console
+        if [ -n "$WAN_IPADDRESS" ] && [ "${WAN_IPADDRESS:0:5}" != "10.64" ] && [ ! -f "/tmp/siteblock_lastrun" ]; then
+                echo "[siteblock_updatelist] Execute /usr/sbin/arc_site_blocking_updatelist.sh ..." >> /dev/console
+                /usr/sbin/arc_site_blocking_updatelist.sh >& /dev/console &
+        fi
+else
+        echo "[siteblock_updatelist] not PPP ifup case. exit..." >> /dev/console
+fi
+
+exit 0

@@ -1,0 +1,17 @@
+#arca.dbus.misc:vlan CMD_STOP
+#arca.dbus.misc:link_state CMD_LINK_DOWN
+#arca.dbus.misc:if6 CMD_STOP
+#arca.dbus.dhcp6c:CMD_STOP
+#arca.dbus.heartbeat:CMD_STOP
+#arca.dbus.dhcpc:CMD_STOP
+#arca.dbus.wanppp:CMD_STOP
+#arca.dbus.misc:vlan CMD_START
+arca.dbus.misc:link_state CMD_UPDATE
+#arca.dbus.misc:wan CMD_WAN_START
+#arca.dbus.dnsmasq:CMD_RESTART
+#arca.dbus.gpio:port CMD_START_WAN_DETECT
+#arca.dbus.heartbeat:CMD_START
+#arca.dbus.dhcpc:CMD_START
+#arca.dbus.wanppp:CMD_RESTART
+#arca.dbus.dhcp6c:CMD_START
+arca.dbus.misc:reboot

@@ -1,0 +1,22 @@
+--- pppoecd-2.3/pppoecd/sys-linux.c.orig	2017-09-12 16:01:05.087199143 +0800
++++ pppoecd-2.3/pppoecd/sys-linux.c	2017-09-12 16:01:08.955129017 +0800
+@@ -51,7 +51,7 @@
+ #define MAX_ADDR_LEN 7
+ #endif
+ 
+-#if __GLIBC__ >= 2
++#if (__GLIBC__ >= 2 || _CS_GNU_LIBC_VERSION >= 2)
+ #include <asm/types.h>		/* glibc 2 conflicts with linux/types.h */
+ #include <net/if.h>
+ #include <net/if_arp.h>
+--- pppoecd-2.3/pppoecd/ipv6cp.c.orig	2017-09-12 16:05:37.298672684 +0800
++++ pppoecd-2.3/pppoecd/ipv6cp.c	2017-09-12 16:05:46.498531791 +0800
+@@ -115,6 +115,8 @@
+ #include <sys/file.h>
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
++#include <sys/stat.h>
++#include <fcntl.h>
+ 
+ #include "pppd.h"
+ #include "fsm.h"

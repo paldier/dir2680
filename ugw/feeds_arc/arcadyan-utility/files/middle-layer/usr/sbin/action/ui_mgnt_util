@@ -1,0 +1,5 @@
+sleep 6
+interface-agent mgnt
+interface-agent reload
+killall -SIGUSR1 httpd
+exit 0

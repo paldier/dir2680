@@ -1,0 +1,27 @@
+echo "[init_sync_cfg] PATH=$PATH" > /dev/console
+
+# prepare glbcfg partition
+if [ -z "$(grep -w glbcfgA /proc/mtd)" ]; then 
+	vol_mgmt create_vol glbcfgA 1MiB 
+fi
+if [ -z "$(grep -w glbcfgB /proc/mtd)" ]; then 
+	vol_mgmt create_vol glbcfgB 1MiB
+fi
+
+if [ ! -f "/etc/config/.glbcfg" ]; then
+	cp /etc/config/glbcfg.dft /etc/config/.glbcfg
+fi
+
+# sync network cfg
+cp /etc/init.d/network-empty-cfg /etc/config/network
+interface-agent interface_mac_setting
+interface-agent lan all
+#interface-agent lan_dhcpd all
+#interface-agent wan all
+#interface-agent mgnt
+
+# remove interface config apply agent files
+rm /tmp/wan_config_apply
+rm /tmp/lan_config_apply
+
+exit 0

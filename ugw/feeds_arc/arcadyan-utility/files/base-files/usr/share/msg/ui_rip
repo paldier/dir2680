@@ -1,0 +1,2 @@
+arca.dbus.zebra:CMD_RESTART
+arca.dbus.firewall:CMD_RESTART $(1)

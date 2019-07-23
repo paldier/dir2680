@@ -1,0 +1,12 @@
+--- a/pppd/ipcp.c
++++ b/pppd/ipcp.c
+@@ -1820,7 +1820,8 @@
+     /* Execute the ip-down script */
+     if (ipcp_script_state == s_up && ipcp_script_pid == 0) {
+ 	ipcp_script_state = s_down;
+-	ipcp_script(_PATH_IPDOWN);
++	if(status != EXIT_USER_REQUEST)
++		ipcp_script(_PATH_IPDOWN);
+ #ifdef MPPPOE_SUPPORT
+ 	kill_ppp(atoi(ipparam)); // by tallest 0407
+ #endif

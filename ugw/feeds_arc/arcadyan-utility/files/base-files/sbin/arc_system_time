@@ -1,0 +1,14 @@
+#!/bin/sh
+
+echo "set default system time"
+cat /proc/version |while read line
+do
+date1=$(echo $line|cut -d"#" -f2 |cut -d " " -f3-6)
+date2=$(echo $line|cut -d"#" -f2 |cut -d " " -f8)
+date_time="${date1} ${date2}"
+if [ "x$date_time" != "x" ]; then
+        date -s "$date_time" -D"%c"
+else
+	date -s "2017-01-01 00:00:00"
+fi
+done

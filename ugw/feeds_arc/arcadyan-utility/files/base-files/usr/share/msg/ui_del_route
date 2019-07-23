@@ -1,0 +1,2 @@
+#action for Routing.asp del_route
+arca.dbus.misc:route_table CMD_DEL_ROUTE

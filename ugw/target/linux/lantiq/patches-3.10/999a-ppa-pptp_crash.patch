@@ -1,0 +1,26 @@
+diff --git a/drivers/net/ppp/ppp_generic.c b/drivers/net/ppp/ppp_generic.c
+--- a/drivers/net/ppp/ppp_generic.c
++++ b/drivers/net/ppp/ppp_generic.c
+@@ -3102,14 +3102,14 @@
+ #endif
+ 	} else if ((ppp_info_id & PPA_PPP_MASK) == PPA_PPPOL2TP_ID) {
+ #if (defined(CONFIG_PPPOL2TP) || defined(CONFIG_PPPOL2TP_MODULE))
+-		if ((ppp_info_id >> PPA_PPP_MASK_LEN) == PPPOL2TP_GET_DMAC)
+-			ret = ppa_get_pppol2tp_info(ppp_dev, pch->chan->private,
+-						    ppp_info_id >> PPA_PPP_MASK_LEN,
+-						    (uint8_t *)value);
+-		else
+-			ret = ppa_get_pppol2tp_info(ppp_dev, pch->chan->private,
+-						    ppp_info_id >> PPA_PPP_MASK_LEN,
+-						    value);
++//		if ((ppp_info_id >> PPA_PPP_MASK_LEN) == PPPOL2TP_GET_DMAC)
++//			ret = ppa_get_pppol2tp_info(ppp_dev, pch->chan->private,
++//						    ppp_info_id >> PPA_PPP_MASK_LEN,
++//						    (uint8_t *)value);
++//		else
++//			ret = ppa_get_pppol2tp_info(ppp_dev, pch->chan->private,
++//						    ppp_info_id >> PPA_PPP_MASK_LEN,
++//						    value);
+ #endif
+ 	}else{
+ #if (defined(CONFIG_PPPOATM) || defined(CONFIG_PPPOATM_MODULE))

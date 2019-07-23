@@ -1,0 +1,86 @@
+diff -ruN a/llmnr.c b/llmnr.c
+--- a/llmnr.c	2017-10-18 00:25:44.000000000 +0800
++++ b/llmnr.c	2018-02-05 18:01:58.943985619 +0800
+@@ -38,15 +38,50 @@
+ #include "llmnr-packet.h"
+ #include "llmnr.h"
+ 
++#define	HOSTNAME_MAX_NUM		4
++
+ static bool llmnr_ipv6 = false;
+ /* Host name in DNS name format (length octet + name + 0 byte) */
+ static char llmnr_hostname[LLMNR_LABEL_MAX_SIZE + 2];
++static char llmnr_hostname_all[HOSTNAME_MAX_NUM][LLMNR_LABEL_MAX_SIZE + 2];
++
++void toLower(char *s)
++{
++	if(!s)
++	    return ;
++
++	while(*s)
++	{
++		if((*s >= 'A') && (*s <= 'Z'))
++		{
++			*s -= 'A' - 'a';
++		}
++		++s;
++	}
++}
+ 
+ void llmnr_set_hostname(const char *hostname)
+ {
++#if 0
+ 	llmnr_hostname[0] = strlen(hostname);
+ 	strncpy(&llmnr_hostname[1], hostname, LLMNR_LABEL_MAX_SIZE);
+ 	llmnr_hostname[LLMNR_LABEL_MAX_SIZE + 1] = '\0';
++#endif
++	int i = 0;
++	char *parameter = NULL;
++
++	memset(llmnr_hostname_all, 0, HOSTNAME_MAX_NUM*(LLMNR_LABEL_MAX_SIZE + 2));
++	while((parameter = strsep(&hostname, ",")) != NULL && i < HOSTNAME_MAX_NUM)
++	{
++		if(strlen(parameter) > 0)
++		{
++			llmnr_hostname_all[i][0] = strlen(parameter);
++			strncpy(&llmnr_hostname_all[i][1], parameter, strlen(parameter));
++			llmnr_hostname_all[i][LLMNR_LABEL_MAX_SIZE + 1] = '\0';
++			toLower(&llmnr_hostname_all[i][1]);
++			i++;
++		}
++	}
+ }
+ 
+ void llmnr_init(const char *hostname, bool ipv6)
+@@ -57,6 +92,7 @@
+ 
+ static bool llmnr_name_matches(const uint8_t *query)
+ {
++#if 0
+ 	uint8_t n = llmnr_hostname[0];
+ 
+ 	/* length */
+@@ -67,6 +103,23 @@
+ 		return false;
+ 
+ 	return strncasecmp((const char *)&query[1], &llmnr_hostname[1], n) == 0;
++#endif
++	uint8_t i = 0, n = 0;
++	char buf[LLMNR_LABEL_MAX_SIZE] = {0};
++
++	memset(buf, 0, sizeof(buf));
++	strncpy(buf, (const char *)&query[1], strlen((const char *)&query[1]));
++	for(i = 0; i < HOSTNAME_MAX_NUM; i++)
++	{
++		n = llmnr_hostname_all[i][0];
++		if(query[0] == n && query[1 + n] == 0 && strncasecmp((const char *)buf, &llmnr_hostname_all[i][1], n) == 0)
++		{
++			memcpy(llmnr_hostname, llmnr_hostname_all[i], LLMNR_LABEL_MAX_SIZE + 2);
++			return true;
++		}
++	}
++
++	return false;
+ }
+ 
+ static void llmnr_respond(unsigned int ifindex, const struct llmnr_hdr *hdr,

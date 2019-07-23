@@ -1,0 +1,27 @@
+From 9f68e7b6a57027975c9e6e2ceb641aac2812dd2a Mon Sep 17 00:00:00 2001
+From: Terry Lin <terry_lin@arcadyan.com.tw>
+Date: Tue, 26 Jul 2016 15:54:14 +0800
+Subject: [PATCH] Choose kernel config by different profile.
+
+---
+ include/target.mk | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/include/target.mk b/include/target.mk
+index e97e609..ad24afa 100644
+--- a/include/target.mk
++++ b/include/target.mk
+@@ -115,7 +115,9 @@ GENERIC_PLATFORM_DIR := $(TOPDIR)/target/linux/generic
+ GENERIC_PATCH_DIR := $(GENERIC_PLATFORM_DIR)/patches$(if $(wildcard $(GENERIC_PLATFORM_DIR)/patches-$(KERNEL_PATCHVER)),-$(KERNEL_PATCHVER))
+ GENERIC_FILES_DIR := $(foreach dir,$(wildcard $(GENERIC_PLATFORM_DIR)/files $(GENERIC_PLATFORM_DIR)/files-$(KERNEL_PATCHVER)),"$(dir)")
+ 
+-__config_name_list = $(1)/config-$(KERNEL_PATCHVER) $(1)/config-default
++# Terry 20160726, support to choose kernel config by different profile
++# __config_name_list = $(1)/config-$(KERNEL_PATCHVER) $(1)/config-default
++__config_name_list = $(1)/config-$(KERNEL_PATCHVER)-$(PROFILE) $(1)/config-$(KERNEL_PATCHVER) $(1)/config-default
+ __config_list = $(firstword $(wildcard $(call __config_name_list,$(1))))
+ find_kernel_config=$(if $(__config_list),$(__config_list),$(lastword $(__config_name_list)))
+ 
+-- 
+1.8.3.1
+

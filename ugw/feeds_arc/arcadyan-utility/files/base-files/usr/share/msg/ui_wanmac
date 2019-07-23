@@ -1,0 +1,8 @@
+#action for WanMAC.asp clone_mac
+arca.dbus.misc:waniface CMD_BOOT
+arca.dbus.gpio:port CMD_START_WAN_DETECT
+arca.dbus.dnsmasq:CMD_RESTART
+arca.dbus.dhcpc:CMD_RESTART
+arca.dbus.wanppp:CMD_RESTART
+arca.dbus.dhcp6c:CMD_RESTART
+arca.dbus.upnp:CMD_RESTART

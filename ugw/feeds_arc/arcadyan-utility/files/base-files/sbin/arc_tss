@@ -1,0 +1,23 @@
+#!/bin/sh
+
+case "$1" in
+	"boot" | "CMD_BOOT" | "start" | "CMD_START")
+		addgroup tss
+		adduser -H -D -G tss tss
+		chown tss /etc/tcsd.conf
+		chgrp tss /etc/tcsd.conf
+		chmod 0600 /etc/tcsd.conf
+
+		tcsd
+		;;
+
+	"stop" | "CMD_STOP")
+		killall tcsd
+		;;
+
+	*)
+		echo $0 'boot          - setup and start TSS core services'
+		echo $0 'start         - start TSS core services'
+		echo $0 'stop          - stop TSS core services'
+		;;
+esac

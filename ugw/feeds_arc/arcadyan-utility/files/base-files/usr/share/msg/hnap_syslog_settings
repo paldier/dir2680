@@ -1,0 +1,2 @@
+#******** hnap_syslog_settings action ********
+arca.dbus.log:CMD_RESTART

@@ -1,0 +1,33 @@
+# ui_smtp_config
+#
+
+#config file to generate
+SmtpConfigFile=/etc/config/ssmtp/ssmtp.conf_0
+
+#kill old existed config file
+rm -f $SmtpConfigFile
+
+action="$1"
+if [ "${action}" != "dele" ]; then
+	#read config data from arc-cfg db by abscfg command
+	server=$(abscfg get ARC_SYS_EMAIL_SmtpServer)
+	enc=$(abscfg get ARC_SYS_EMAIL_SmtpEnc)
+	port=$(abscfg get ARC_SYS_EMAIL_SmtpPort)
+	username=$(abscfg get ARC_SYS_EMAIL_SmtpUsername)
+	password=$(abscfg get ARC_SYS_EMAIL_SmtpPassword)
+	sendtoaddr=$(abscfg get ARC_SYS_EMAIL_SendToAddr)
+
+	#generate new content for config item
+	echo "Root=$sendtoaddr" >> $SmtpConfigFile
+	echo "HostName=$server" >> $SmtpConfigFile
+	echo "MailHub=$server:$port" >> $SmtpConfigFile
+	echo "FromLineOverride=YES" >> $SmtpConfigFile
+	echo "AuthUser=$username" >> $SmtpConfigFile
+	echo "AuthPass=$password" >> $SmtpConfigFile
+	if [ "$enc" == "1" ]; then
+		echo "UseSTARTTLS=YES" >> $SmtpConfigFile
+	fi
+	echo "From=$username" >> $SmtpConfigFile
+fi
+
+exit 0

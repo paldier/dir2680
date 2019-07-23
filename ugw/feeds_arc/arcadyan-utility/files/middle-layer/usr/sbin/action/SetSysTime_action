@@ -1,0 +1,10 @@
+ntpclient-agent $@
+
+##########################################################################################
+##	Usage: SetSysTime_action <command> <datetime>
+##	If ARC_SYS_NTP_Enable = 0, ntpclient-agent will set datetime manually depends on $2.
+##	Available datetime format:
+##		"YYYY.MM.DD-hh:mm:ss"
+##		"YYYY-MM-DD hh:mm:ss"
+##		"YYYYMMDDhhmm.ss"
+##########################################################################################

@@ -1,0 +1,9 @@
+#******** system reboot ********
+#arca.dbus.misc:CMD_COMMIT
+# swicth sbin/arc_switch.ethwan or /sbin/arc_swich.lte to /sbin/arc_swich at /sbin/arc_wanmode
+arca.dbus.misc:wanmode
+arca.dbus.misc:commit
+arca.dbus.misc:sleep 2
+# OFF PHY now
+arca.dbus.misc:switch CMD_PHY_OFF
+arca.dbus.misc:reboot

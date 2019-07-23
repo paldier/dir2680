@@ -1,0 +1,2 @@
+#action for ipv6 dhcp release
+arca.dbus.dhcp6c:CMD_RELEASE

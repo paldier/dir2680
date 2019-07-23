@@ -1,0 +1,6 @@
+#!/bin/sh
+#ifx_event_util will handle wan link up/down event.
+#aldk has another way to do so. so, we hijack this.
+echo '@' $0 $@
+cmd=$0_intel
+#$cmd $@

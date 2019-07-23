@@ -1,0 +1,392 @@
+#!/bin/sh
+
+get_eth_mac()
+{   
+#	x=`ifconfig $1 | awk '/eth/ {printf $NF}' | cut -c1-17`;
+	x=`arcbd show | grep mac | awk -F'=' '{printf $2}'`;
+	echo $x;
+}
+
+lan_iface=`mng_cli get ARC_LAN_0_BridgedIfname`
+wan_iface=`mng_cli get ARC_WAN_0_Ifname`
+br_iface=`mng_cli get ARC_LAN_0_Ifname`
+guest_br_iface=`mng_cli get ARC_LAN_1_Ifname`
+wl_iface=`mng_cli get ARC_WLAN_24G_SSID_0_Interface`
+wl_iface_1=`mng_cli get ARC_WLAN_24G_SSID_1_Interface` 
+wl_iface5g=`mng_cli get ARC_WLAN_5G_SSID_0_Interface` 
+wl_iface5g_1=`mng_cli get ARC_WLAN_5G_SSID_1_Interface` 
+bridge_mode=`mng_cli get ARC_WAN_0_BridgeEnable`
+br_basehwaddr=$(get_eth_mac $lan_iface)
+guest_br_hwaddr=`macadd $br_basehwaddr 3`
+
+wan_base_ifname=`mng_cli get ARC_WAN_0_BASE_Ifname`
+vlan_enable=`mng_cli get ARC_WAN_0_VLAN_Enable`
+lan1_map=`mng_cli get ARC_WAN_0_VLAN_lan1_map`
+lan2_map=`mng_cli get ARC_WAN_0_VLAN_lan2_map`
+lan3_map=`mng_cli get ARC_WAN_0_VLAN_lan3_map`
+lan4_map=`mng_cli get ARC_WAN_0_VLAN_lan4_map`
+wlan_map=`mng_cli get ARC_WAN_0_VLAN_wlan_map`
+wlan_guest_map=`mng_cli get ARC_WAN_0_VLAN_wlan_guest_map`
+IPTV_vlan_vid=`mng_cli get ARC_WAN_0_VLAN_IPTV_vid`
+VOIP_vlan_vid=`mng_cli get ARC_WAN_0_VLAN_VOIP_vid`
+
+IPTV_ifname=`mng_cli get ARC_VLAN_IPTV_Ifname`
+VOIP_ifname=`mng_cli get ARC_VLAN_VOIP_Ifname`
+
+old_IPTV_vlan_vid=`mng_cli tmp_get TMP_VLAN_IPTV_vid`
+old_VOIP_vlan_vid=`mng_cli tmp_get TMP_VLAN_VOIP_vid`
+if [ "$IPTV_ifname" == "" ]; then
+IPTV_ifname="br2"
+fi
+if [ "$VOIP_ifname" == "" ]; then
+VOIP_ifname="br3"
+fi
+
+#### linghong_tan 2013-03-04
+#### for UGW5.3, if you enable CONFIG_LTQ_ROUTE_AND_BRIDGE_SIMULTANEOUSLY in kernel,
+#### you must manully change br0's mac address, indepdent from eth0's mac. 
+#### Or br0 can not learn all client's mac.
+#### Terry 20140624, disable CONFIG_LTQ_ROUTE_AND_BRIDGE_SIMULTANEOUSLY for HB2 project.
+#### Terry 20140805, enable CONFIG_LTQ_ROUTE_AND_BRIDGE_SIMULTANEOUSLY for HB2 project since hostapd can't receive packets.
+#if [ "$CONFIG_PACKAGE_kmod-disable_ltqcpe_route_and_bridge_simultaneously" != "1" ]; then
+	br_basehwaddr=`echo $br_basehwaddr`
+#else
+#	br_basehwaddr=`macadd $br_basehwaddr 1`
+#fi
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+		brctl addbr $br_iface
+		brctl setfd $br_iface 0
+		brctl stp $br_iface off
+		brctl addbr $IPTV_ifname
+		brctl setfd $IPTV_ifname 0
+		brctl stp $IPTV_ifname off
+		brctl addbr $VOIP_ifname
+		brctl setfd $VOIP_ifname 0
+		brctl stp $VOIP_ifname off
+		brctl addif $br_iface $lan_iface
+		if [ $lan3_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_2
+		else
+			if [ $lan3_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_2
+			else
+				brctl addif $br_iface eth0_2
+			fi
+		fi
+		if [ $lan2_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_3
+		else
+			if [ $lan2_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_3
+			else
+				brctl addif $br_iface eth0_3
+			fi
+		fi
+		if [ $lan1_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_4
+		else
+			if [ $lan1_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_4
+			else
+				brctl addif $br_iface eth0_4
+			fi
+		fi
+
+		if [ "$vlan_enable" == "true" ] ; then
+			echo "0" > /proc/sys/net/bridge/bridge-nf-call-iptables
+			echo "0" > /proc/sys/net/bridge/bridge-nf-call-ip6tables
+			brctl addif $IPTV_ifname $wan_base_ifname.$IPTV_vlan_vid
+			brctl addif $VOIP_ifname $wan_base_ifname.$VOIP_vlan_vid
+		fi
+
+		#brctl addif $br_iface eth0_2		#lan
+		#brctl addif $br_iface eth0_3		#lan
+		#brctl addif $br_iface eth0_4		#lan
+		if [ $wlan_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname $wl_iface
+			brctl addif $IPTV_ifname $wl_iface5g
+		else
+			if [ $wlan_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname $wl_iface
+				brctl addif $VOIP_ifname $wl_iface5g
+			else
+				brctl addif $br_iface $wl_iface			#wlan
+				brctl addif $br_iface $wl_iface5g		#wlan
+			fi
+		fi
+
+
+		if [ $bridge_mode = "1" ] ; then
+			brctl addif $br_iface $wan_iface
+		fi
+
+		### change br0's mac for UGW5.3 CONFIG_LTQ_ROUTE_AND_BRIDGE_SIMULTANEOUSLY feature ###
+		ifconfig $lan_iface hw ether $br_basehwaddr		
+		ifconfig $br_iface hw ether $br_basehwaddr
+		### Zhijian 2015-07-02 set mtu of bridge interface to default value 1500 ###
+		ifconfig $br_iface mtu 1500
+
+		# Terry 20150716, for UGW-6.1.1 workaround, we need to remove and add br0 interface to PPA again.
+		ppacmd dellan -i $br_iface
+		ppacmd addlan -i $br_iface
+		ppacmd dellan -i $wl_iface
+		ppacmd addlan -i $wl_iface
+		ifconfig eth0_1 up
+		ifconfig eth0_2 up
+		ifconfig eth0_3 up
+		ifconfig eth0_4 up
+
+		#for guest network
+		brctl addbr $guest_br_iface
+		brctl setfd $guest_br_iface 0
+		brctl stp $guest_br_iface off
+		ifconfig $guest_br_iface hw ether $guest_br_hwaddr
+		if [ $wlan_guest_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname $wl_iface_1
+			brctl addif $IPTV_ifname $wl_iface5g_1
+		else
+			if [ $wlan_guest_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname $wl_iface_1
+				brctl addif $VOIP_ifname $wl_iface5g_1
+			else
+				brctl addif $guest_br_iface $wl_iface_1
+				brctl addif $guest_br_iface $wl_iface5g_1
+			fi
+		fi
+
+	;;
+	"change" | "CMD_CHANGE")
+		echo "change bridge..........."
+		#Firstly delif from old bridge
+		brctl delif $br_iface eth0_2
+		brctl delif $IPTV_ifname eth0_2
+		brctl delif $VOIP_ifname eth0_2
+
+		brctl delif $br_iface eth0_3
+		brctl delif $IPTV_ifname eth0_3
+		brctl delif $VOIP_ifname eth0_3
+
+		brctl delif $br_iface eth0_4
+		brctl delif $IPTV_ifname eth0_4
+		brctl delif $VOIP_ifname eth0_4
+
+
+		if [ $lan3_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_2
+		else
+			if [ $lan3_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_2
+			else
+				brctl addif $br_iface eth0_2
+			fi
+		fi
+		if [ $lan2_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_3
+		else
+			if [ $lan2_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_3
+			else
+				brctl addif $br_iface eth0_3
+			fi
+		fi
+		if [ $lan1_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_4
+		else
+			if [ $lan1_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_4
+			else
+				brctl addif $br_iface eth0_4
+			fi
+		fi
+		
+		#First delif from the bridge
+		brctl delif $IPTV_ifname $wan_base_ifname.$old_IPTV_vlan_vid
+		brctl delif $VOIP_ifname $wan_base_ifname.$old_IPTV_vlan_vid
+
+		brctl delif $IPTV_ifname $wan_base_ifname.$old_VOIP_vlan_vid
+		brctl delif $VOIP_ifname $wan_base_ifname.$old_VOIP_vlan_vid
+
+		if [ "$vlan_enable" == "true" ] ; then
+			brctl addif $IPTV_ifname $wan_base_ifname.$IPTV_vlan_vid
+			brctl addif $VOIP_ifname $wan_base_ifname.$VOIP_vlan_vid
+			echo "0" > /proc/sys/net/bridge/bridge-nf-call-iptables
+			echo "0" > /proc/sys/net/bridge/bridge-nf-call-ip6tables
+		fi
+
+
+		brctl delif $br_iface $wl_iface
+		brctl delif $br_iface $wl_iface5g
+		brctl delif $IPTV_ifname $wl_iface
+		brctl delif $IPTV_ifname $wl_iface5g
+		brctl delif $VOIP_ifname $wl_iface
+		brctl delif $VOIP_ifname $wl_iface5g
+
+
+		if [ $wlan_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname $wl_iface
+			brctl addif $IPTV_ifname $wl_iface5g
+		else
+			if [ $wlan_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname $wl_iface
+				brctl addif $VOIP_ifname $wl_iface5g
+			else
+				brctl addif $br_iface $wl_iface			#wlan
+				brctl addif $br_iface $wl_iface5g		#wlan
+			fi
+		fi
+
+
+		ifconfig eth0_1 up
+		ifconfig eth0_2 up
+		ifconfig eth0_3 up
+		ifconfig eth0_4 up
+
+		#for guest network
+
+		brctl delif $guest_br_iface $wl_iface_1
+		brctl delif $guest_br_iface $wl_iface5g_1
+		brctl delif $IPTV_ifname $wl_iface_1
+		brctl delif $IPTV_ifname $wl_iface5g_1
+		brctl delif $VOIP_ifname $wl_iface_1
+		brctl delif $VOIP_ifname $wl_iface5g_1
+
+		if [ $wlan_guest_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname $wl_iface_1
+			brctl addif $IPTV_ifname $wl_iface5g_1
+		else
+			if [ $wlan_guest_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname $wl_iface_1
+				brctl addif $VOIP_ifname $wl_iface5g_1
+			else
+				brctl addif $guest_br_iface $wl_iface_1
+				brctl addif $guest_br_iface $wl_iface5g_1
+			fi
+		fi
+
+	;;
+	"start" | "CMD_START")
+		brctl addbr $br_iface
+		brctl setfd $br_iface 0
+		brctl stp $br_iface off
+		brctl addbr $IPTV_ifname
+		brctl setfd $IPTV_ifname 0
+		brctl stp $IPTV_ifname off
+		brctl addbr $VOIP_ifname
+		brctl setfd $VOIP_ifname 0
+		brctl stp $VOIP_ifname off
+		brctl addif $br_iface $lan_iface
+		if [ $lan3_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_2
+		else
+			if [ $lan3_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_2
+			else
+				brctl addif $br_iface eth0_2
+			fi
+		fi
+		if [ $lan2_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_3
+		else
+			if [ $lan2_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_3
+			else
+				brctl addif $br_iface eth0_3
+			fi
+		fi
+		if [ $lan1_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname eth0_4
+		else
+			if [ $lan1_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname eth0_4
+			else
+				brctl addif $br_iface eth0_4
+			fi
+		fi
+		if [ "$vlan_enable" == "true" ] ; then
+			echo "0" > /proc/sys/net/bridge/bridge-nf-call-iptables
+			echo "0" > /proc/sys/net/bridge/bridge-nf-call-ip6tables
+			brctl addif $IPTV_ifname $wan_base_ifname.$IPTV_vlan_vid
+			brctl addif $VOIP_ifname $wan_base_ifname.$VOIP_vlan_vid
+		fi
+
+		if [ $wlan_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname $wl_iface
+			brctl addif $IPTV_ifname $wl_iface5g
+		else
+			if [ $wlan_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname $wl_iface
+				brctl addif $VOIP_ifname $wl_iface5g
+			else
+				brctl addif $br_iface $wl_iface			#wlan
+				brctl addif $br_iface $wl_iface5g		#wlan
+			fi
+		fi
+
+		if [ $bridge_mode = "1" ] ; then
+			brctl addif $br_iface $wan_iface
+		fi
+
+		### change br0's mac for UGW5.3 CONFIG_LTQ_ROUTE_AND_BRIDGE_SIMULTANEOUSLY feature ###
+		ifconfig $lan_iface hw ether $br_basehwaddr		
+		ifconfig $br_iface hw ether $br_basehwaddr
+		### Zhijian 2015-07-02 set mtu of bridge interface to default value 1500 ###
+		ifconfig $br_iface mtu 1500
+		
+		# Terry 20150716, for UGW-6.1.1 workaround, we need to remove and add br0 interface to PPA again.
+		ppacmd dellan -i $br_iface
+		ppacmd addlan -i $br_iface
+		ppacmd dellan -i $wl_iface
+		ppacmd addlan -i $wl_iface
+		ifconfig eth0_1 up
+		ifconfig eth0_2 up
+		ifconfig eth0_3 up
+		ifconfig eth0_4 up
+
+		#for guest network
+		brctl addbr $guest_br_iface
+		brctl setfd $guest_br_iface 0
+		brctl stp $guest_br_iface off
+		ifconfig $guest_br_iface hw ether $guest_br_hwaddr
+		if [ $wlan_guest_map = "IPTV" ] ; then
+			brctl addif $IPTV_ifname $wl_iface_1
+			brctl addif $IPTV_ifname $wl_iface5g_1
+		else
+			if [ $wlan_guest_map = "VOIP" ] ; then
+				brctl addif $VOIP_ifname $wl_iface_1
+				brctl addif $VOIP_ifname $wl_iface5g_1
+			else
+				brctl addif $guest_br_iface $wl_iface_1
+				brctl addif $guest_br_iface $wl_iface5g_1
+			fi
+		fi
+	;;
+
+	"stop" | "CMD_STOP")
+		brctl delif $br_iface $wl_iface
+		brctl delif $br_iface $wl_iface5g
+		brctl delif $br_iface $lan_iface
+
+		if [ $bridge_mode = "1" ] ; then
+			brctl delif $br_iface $wan_iface
+		fi
+
+		# Terry 20150716, for UGW-6.1.1 workaround, we need to remove and add br0 interface to PPA again.
+		ppacmd dellan -i $br_iface
+		ppacmd dellan -i $wl_iface
+		
+		brctl delbr $br_iface
+
+		#for guest network
+		brctl delif $guest_br_iface $wl_iface_1
+		brctl delif $guest_br_iface $wl_iface5g_1
+		brctl delbr $guest_br_iface
+	;;
+
+	*)
+		echo $0 'boot          - setup and start birdge interface'
+		echo $0 'start         - setup and start birdge interface'
+		echo $0 'stop          - stop and delete birdge interface'
+		;;
+esac

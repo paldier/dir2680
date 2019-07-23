@@ -1,0 +1,5 @@
+#arca.dbus.misc:storage remove $(1)
+arca.dbus.archotplugd:CMD_UNMOUNT $(1)
+arca.dbus.usbapp:CMD_FTP_UPDATE
+arca.dbus.usbapp:CMD_SAMBA_UPDATE
+arca.dbus.usbapp:CMD_DLNA_UPDATE

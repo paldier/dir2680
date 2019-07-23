@@ -1,0 +1,2 @@
+#!/bin/sh
+dbus-arca-cli --command --dest=arca.dbus.heartbeat CMD_STOP

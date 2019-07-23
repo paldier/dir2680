@@ -1,0 +1,11 @@
+--- a/pppd/auth.c
++++ b/pppd/auth.c
+@@ -1189,7 +1189,7 @@
+     if (idle_time_hook != 0) {
+ 	tlim = idle_time_hook(&idle);
+     } else {
+-	itime = MIN(idle.xmit_idle, idle.recv_idle);
++	itime = idle.xmit_idle;
+ 	tlim = idle_time_limit - itime;
+     }
+     if (tlim <= 0) {

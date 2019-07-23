@@ -1,0 +1,2 @@
+#start autodetect pppv6
+arca.dbus.wanppp:CMD_START $(1)

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+case "$1" in
+	"CMD_BOOT")
+		echo 16384 > /proc/sys/net/netfilter/nf_conntrack_max
+		echo 16384 > /proc/sys/net/netfilter/nf_conntrack_expect_max
+		echo 10 > /proc/sys/net/netfilter/nf_conntrack_tcp_timeout_close
+		echo 120 > /proc/sys/net/netfilter/nf_conntrack_tcp_timeout_fin_wait
+		echo 600 > /proc/sys/net/netfilter/nf_conntrack_tcp_timeout_established
+		echo 120 > /proc/sys/net/netfilter/nf_conntrack_tcp_timeout_syn_sent
+		echo 60 > /proc/sys/net/netfilter/nf_conntrack_tcp_timeout_time_wait
+		echo 60 > /proc/sys/net/netfilter/nf_conntrack_udp_timeout
+		echo 30 > /proc/sys/net/netfilter/nf_conntrack_icmp_timeout
+
+		# Increase the number of time wait buckets to defence the attack from OWASP ZAP(Forced Browse).
+		echo 8192 > /proc/sys/net/ipv4/tcp_max_tw_buckets
+		;;
+
+
+	*)
+		echo $0 'linux2.6 net param          - setup net param'
+		;;
+esac

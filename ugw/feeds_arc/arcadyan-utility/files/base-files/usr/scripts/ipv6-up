@@ -1,0 +1,50 @@
+#!/bin/sh
+#2013-02-04 zhangyu move the script from ip-up to ipv6-up. when IPV6CP has come UP, the pppoecde will call this script
+
+wan_index=$6
+if [ "$wan_index" = "" ]; then
+	wan_index=0
+fi
+
+dft_wan_idx=`mng_cli get ARC_WAN_DefaultRouteIdx`
+if [ "$dft_wan_idx" = "" ]; then
+	dft_wan_idx=0
+fi
+
+mng_cli set ARC_WAN_${wan_index}_PPP_Status="Connected"
+mng_cli set ARC_WAN_${wan_index}_PPPv6_Status="Connected"
+mng_cli set ARC_WAN_${wan_index}_Iface="$IFNAME"
+
+tmp_value=`cat /proc/uptime | cut -d'.' -f1`
+mng_cli tmp_set TMP_WAN_IP6_Connect_Start_Time=$tmp_value
+
+if [ $wan_index = $dft_wan_idx ]; then
+	wan_ipv6_proto=`mng_cli get ARC_WAN_${wan_index}_IP6_Proto`
+	ipv6_dhcpc_en=`mng_cli get ARC_WAN_${wan_index}_IP6_DHCP`
+	autodetect_en=`mng_cli get ARC_IP6_AUTODETECT_Enable`
+
+	if [ $autodetect_en = "1" ]; then
+		killall -SIGUSR1 ipv6autodetect
+	fi
+
+	if [ $wan_ipv6_proto = "dhcp" ] && [ $ipv6_dhcpc_en = "on" ];  then
+		dbus-arca-cli --command --dest=arca.dbus.dhcp6c CMD_RESTART
+	fi
+	
+	if [ $wan_ipv6_proto = "pppoe" ]; then
+		dbus-arca-cli --command --dest=arca.dbus.dhcp6c CMD_RESTART
+	fi
+
+	if [ $wan_ipv6_proto = "static" ]; then
+		mng_cli action sys_ipv6_wan_done
+	fi
+fi
+
+if [ "$wan_index" != "0" ]; then
+	wan_ipv6_proto=`mng_cli get ARC_WAN_${wan_index}_IP6_Proto`
+	if [ $wan_ipv6_proto = "pppoe" ]; then
+		# Supports IPv6 PPPoE Multiple WAN by passing in parameters.	
+		dbus-arca-cli --command --dest=arca.dbus.dhcp6c "CMD_RESTART wan_idx=${wan_index}"
+	fi
+fi
+

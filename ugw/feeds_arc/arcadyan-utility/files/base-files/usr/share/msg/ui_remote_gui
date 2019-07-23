@@ -1,0 +1,5 @@
+#action for user/service remote management
+arca.dbus.firewall:CMD_RESTART pre_remote_management_mod;intrusion_detect_pre_mod;remote_management_mod
+arca.dbus.misc:firewall6 CMD_RESTART
+arca.dbus.httpd:CMD_RELOAD
+

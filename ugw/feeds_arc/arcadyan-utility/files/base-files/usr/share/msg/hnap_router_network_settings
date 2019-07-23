@@ -1,0 +1,5 @@
+#******** hnap_router_network_settings action ********
+arca.dbus.dhcpd:CMD_RESTART
+arca.dbus.dnsmasq:CMD_RESTART
+arca.dbus.llmnrd:CMD_RESTART
+arca.dbus.mdns:CMD_RESTART

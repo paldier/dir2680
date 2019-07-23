@@ -1,0 +1,12 @@
+diff -ruN a/radvd.c b/radvd.c
+--- a/radvd.c	2011-10-06 18:52:20.000000000 +0800
++++ b/radvd.c	2018-02-24 16:40:14.748492644 +0800
+@@ -228,7 +228,7 @@
+ 	}
+ 
+ 	if (!configtest) {
+-		flog(LOG_INFO, "version %s started", VERSION);
++		flog(LOG_INFO, "radvd started");
+ 	}
+ 
+ 	/* get a raw socket for sending and receiving ICMPv6 messages */

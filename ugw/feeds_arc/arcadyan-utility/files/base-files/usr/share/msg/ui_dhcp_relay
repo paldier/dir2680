@@ -1,0 +1,3 @@
+arca.dbus.dhcpd:CMD_RESTART
+arca.dbus.dhcprelay:CMD_RESTART
+arca.dbus.misc:firewall

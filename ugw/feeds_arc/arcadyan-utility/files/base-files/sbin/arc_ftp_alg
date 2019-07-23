@@ -1,0 +1,42 @@
+#!/bin/sh
+
+ftp_enable=`mng_cli get ARC_USB_FTP_Enable`
+ftp_port=`mng_cli get ARC_USB_FTP_Port`
+
+case "$1" in
+	"CMD_BOOT" | "CMD_START" | "CMD_RESTART")
+		rmmod nf_nat_ftp
+		rmmod nf_conntrack_ftp
+
+		if [ $ftp_enable = "1" ] ; then
+			echo "ftp alg enable for USB FTP..."
+			if [ $ftp_port = "21" ] ; then
+				insmod nf_conntrack_ftp
+			else
+				insmod nf_conntrack_ftp ports=21,$ftp_port
+			fi
+			insmod nf_nat_ftp
+			conntrack -D -f ipv4 -p udp --dport $ftp_port
+		else
+			echo "ftp alg enable as default..."
+			insmod nf_conntrack_ftp
+			insmod nf_nat_ftp
+		fi
+
+		;;
+
+	"CMD_STOP")
+		rmmod nf_nat_ftp
+		rmmod nf_conntrack_ftp
+		if [ $ftp_enable = "1" ] ; then
+			conntrack -D -f ipv4 -p udp --dport $ftp_port
+		else
+			conntrack -D -f ipv4 -p udp --dport 21
+		fi
+
+		;;
+
+	*)
+		echo $0 'ftp alg          - setup ftp alg'
+		;;
+esac

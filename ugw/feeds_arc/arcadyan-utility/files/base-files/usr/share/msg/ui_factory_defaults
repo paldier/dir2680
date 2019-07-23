@@ -1,0 +1,9 @@
+#action for Factory_Defaults.asp saving
+arca.dbus.misc:tr69_trigger stop
+arca.dbus.voip:CMD_UNREG
+arca.dbus.misc:qcsapi CMD_RESTORE
+arca.dbus.misc:restore_defaults
+#arca.dbus.misc:sleep 2
+# OFF PHY now
+arca.dbus.misc:switch CMD_PHY_OFF
+arca.dbus.misc:reboot

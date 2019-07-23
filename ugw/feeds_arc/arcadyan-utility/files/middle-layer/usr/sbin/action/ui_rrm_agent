@@ -1,0 +1,6 @@
+
+echo "[ui_rrm_agent] $1" > /dev/console
+/usr/sbin/ac_ipc_cli $1
+
+
+exit 0

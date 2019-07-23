@@ -1,0 +1,99 @@
+
+
+
+findRuleId()
+{
+	range="$1"
+	intf_name="$2"
+	retID=-1
+
+	for id in ${range}
+	do
+		type=`abscfg get ARC_ROUTING_x_Type ${id}`
+		isEnabled=`abscfg get ARC_ROUTING_x_Enable ${id}`
+		if [ ${type} -eq 1 ];then  #system created
+			srcIntf=`abscfg get ARC_ROUTING_x_Src_Intf ${id}`
+			if [ "${intf_name}" = "${srcIntf}" ];then
+				retID=${id}
+				break
+			fi
+		elif [ ${retID} -eq -1 ] && [ ${isEnabled} = 0 ]; then #first empty slot
+				retID=${id}
+		fi
+
+	done
+	echo ${retID}
+}
+
+
+#action type_interface
+
+#action
+shift
+#interface type
+type_intf="$1"
+shift
+#interface id
+
+if [ "${type_intf}" = "lan" ]; then
+
+	ids=`echo "$@"`
+	if [ "${ids}" = "all" ]; then
+		max=`abscfg get_idx_limit ARC_LAN_x_Enable | cut -d" " -f5 | cut -d"," -f1`
+		ids="$(seq 1 ${max})"
+	fi
+	maxRoutingRule=`abscfg get_idx_limit ARC_LAN_x_Enable | cut -d" " -f5 | cut -d"," -f1`
+	Range="$(seq 0 $((maxRoutingRule-1)))"
+	for idxIntf in ${ids}
+	do
+		isEnabled=`abscfg get ARC_LAN_x_Enable ${idxIntf}`
+		if [ ${idxIntf} -eq 0 ]; then
+			id=""
+		else
+			id=${idxIntf}
+		fi
+		#find the policy routing id
+		RuleID=`findRuleId "${Range}" lan${id}`
+		if [ ${RuleID} -ne -1 ]; then
+			if [ ${isEnabled} -eq 1 ]; then
+				isRouting=`abscfg get ARC_LAN_x_UplinkL23Binding ${idxIntf}`
+				if [ ${isRouting} -eq 1 ]; then
+					abscfg set ARC_ROUTING_x_Enable ${RuleID} 1
+					abscfg set ARC_ROUTING_x_Type ${RuleID} 1
+					abscfg set ARC_ROUTING_x_Priority ${RuleID} 99
+					abscfg set ARC_ROUTING_x_Src_Intf ${RuleID} "lan${id}"
+					wanid=`abscfg get ARC_LAN_x_UplinkBindingTo ${idxIntf}`
+					if [ ${wanid} -eq 0 ]; then
+						abscfg set ARC_ROUTING_x_Dest_Intf_y ${RuleID} 0 "wan"
+					else
+						abscfg set ARC_ROUTING_x_Dest_Intf_y ${RuleID} 0 "wan${wanid}"
+					fi
+
+					abscfg set ARC_ROUTING_x_Dest_Metric_y ${RuleID} 0 "10"
+					abscfg set ARC_ROUTING_x_Dest_Weight_y ${RuleID} 0 "11"
+					abscfg set ARC_ROUTING_x_Sticky ${RuleID} 1
+				else
+					abscfg set ARC_ROUTING_x_Enable ${RuleID} 0
+				fi
+			else
+				abscfg set ARC_ROUTING_x_Enable ${RuleID} 0
+				abscfg set ARC_ROUTING_x_Dest_Intf_y ${RuleID} 0 ""
+			fi
+		else
+			echo "Didn't find empty slot to set rule for lan${idxIntf}" > /dev/console
+		fi
+	done
+	route-agent-main --update -t policy
+
+elif [ "${type_intf}" = "wan" ]; then
+	route-agent-main --update -t wan
+elif [ "${type_intf}" = "policy" ]; then
+	/usr/sbin/saveaction "$0 $@"
+	route-agent-main --update -t policy
+fi
+
+/usr/sbin/cpinitscript mwan3
+
+#write config
+mngcli commit
+exit 0

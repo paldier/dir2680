@@ -1,0 +1,10 @@
+#!/bin/sh
+WAN_MODE=`mngcli get VAR_WAN_TYPE`
+if [ "$WAN_MODE" == "1" ]; then
+  echo "WAN ether mode"
+  cp -f /sbin/arc_switch.ethwan  /sbin/arc_switch
+fi
+if [ "$WAN_MODE" == "3" ]; then
+  echo "WAN LTE mode"
+  cp -f /sbin/arc_switch.lte  /sbin/arc_switch
+fi

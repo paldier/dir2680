@@ -1,0 +1,5 @@
+#action for Parental_Control.asp saving
+arca.dbus.firewall:CMD_RESTART $(1)
+arca.dbus.nlinkd:CMD_RESTART
+arca.dbus.crond:CMD_RESTART
+arca.dbus.httpd:CMD_RESTART

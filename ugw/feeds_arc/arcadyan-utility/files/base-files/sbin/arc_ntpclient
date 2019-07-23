@@ -1,0 +1,29 @@
+#!/bin/sh
+
+case "$1" in
+	"boot" | "CMD_BOOT")
+		killall arc_ntpdaemon
+		arc_ntpdaemon start
+		;;
+
+	"start" | "CMD_START")
+		killall arc_ntpdaemon
+		arc_ntpdaemon start
+		;;
+
+	"restart" | "CMD_RESTART")
+		killall arc_ntpdaemon
+		arc_ntpdaemon start
+		;;
+
+
+	"stop" | "CMD_STOP")
+		killall arc_ntpdaemon
+		;;
+
+	*)
+		echo $0 'boot          - start ntp client'
+		echo $0 'start         - start ntp client'
+		echo $0 'stop          - stop ntp client'
+		;;
+esac

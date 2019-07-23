@@ -1,0 +1,2 @@
+# LAN PHY OFF
+arca.dbus.misc: switch CMD_PHY_OFF

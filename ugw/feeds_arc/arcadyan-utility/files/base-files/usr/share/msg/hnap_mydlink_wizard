@@ -1,0 +1,3 @@
+arca.dbus.httpd:CMD_RESTART
+arca.dbus.mdns:CMD_RESTART
+arca.dbus.wlan:CMD_RESTART

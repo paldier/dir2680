@@ -1,0 +1,2 @@
+#action for DDNS.asp ddns_update
+arca.dbus.ddns:CMD_RESTART

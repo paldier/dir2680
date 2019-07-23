@@ -1,0 +1,2 @@
+#action for IPv6_Firewall.asp saving
+arca.dbus.misc:firewall6 CMD_RESTART
